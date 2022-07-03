@@ -1,0 +1,32 @@
+{
+  "name": "spartanlabs-contracts",
+  "version": "1.0.0",
+  "description": "A library of cutting-edge smart contracts pushing the boundaries of the Web3 space",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpartanLabsXyz/spartanlabs-contracts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SpartanLabsXyz/spartanlabs-contracts/issues"
+  },
+  "homepage": "https://github.com/SpartanLabsXyz/spartanlabs-contracts#readme",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "chai": "^4.3.6",
+    "ethereum-waffle": "^3.4.4",
+    "ethers": "^5.6.9",
+    "hardhat": "^2.9.9",
+    "hardhat-deploy": "^0.11.11"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.0"
+  }
+}
