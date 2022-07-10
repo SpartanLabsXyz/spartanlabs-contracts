@@ -13,8 +13,7 @@ import "./IERC721.sol";
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".
  */
-contract NFTIntervalTimeLock {
-    // TODO: Add SafeERC721 interaction?
+contract LinearVestingNFTTimeLock {
 
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
@@ -25,21 +24,14 @@ contract NFTIntervalTimeLock {
     // beneficiary of token after they are released
     address private immutable _beneficiary;
 
-    // timestamp when token release is enabled
+    // timestamp when token release is enabled and when discount starts to vest
     uint256 private immutable _releaseTime;
 
     // Max discount allowed for a token in percentage
     uint256 private immutable _maxDiscount;
 
-    // Max number of epochs 
-    uint256 private immutable _maxEpoch;
-
-    // Current discount epoch after @variable _releaseTime
-    uint256 private _currentEpoch;
-
-    // Epoch Interval
-    uint256 private _epochInterval;
-
+    // Duration that token will vest
+    uint256 private _duration;
 
 
     /**
@@ -53,8 +45,7 @@ contract NFTIntervalTimeLock {
         address beneficiary_,
         uint256 releaseTime_,
         uint256 maxDiscount_,
-        uint256 maxEpoch_,
-        uint256 epochInterval_
+        uint256 duration_
     ) {
         require(releaseTime_ > block.timestamp, "BasicNFTTimelock: release time is before current time");
         _nft = nft_;
@@ -62,9 +53,7 @@ contract NFTIntervalTimeLock {
         _beneficiary = beneficiary_;
         _releaseTime = releaseTime_;
         _maxDiscount = maxDiscount_;
-        _maxEpoch = maxEpoch_;
-        _epochInterval = epochInterval_;
-        _currentEpoch = 0;
+        _duration = duration_;
     }
 
     /**
@@ -95,40 +84,25 @@ contract NFTIntervalTimeLock {
         return _releaseTime;
     }
 
-    /**
-     * @dev Returns discount for locking at each epoch
+     /**
+     * @dev Returns discount percentage for achieved from vesting
      */
-    function discountPerEpoch() public view virtual returns (uint256){
-        return _maxDiscount/_maxEpoch;
-    }
 
-    function getCurrentEpoch() public view returns (uint256){
-     uint256 epoch = uint256((block.timestamp - _releaseTime) / _epochInterval);
-     if (epoch > _maxEpoch) {
-         epoch = _maxEpoch;
-     }
-        return epoch;
-
-    }
-
-    function getEpochsLeft() public view returns (uint256){
-        return _maxEpoch - _currentEpoch;
-    }
-    
-
-    function updateEpoch() private {
-        require(block.timestamp >= _releaseTime + _epochInterval, "Vesting Schedule is not Up yet.");
-        require(_currentEpoch <= _maxEpoch, "Vesting Schedule is over.");
-        // floor the current epoch to the nearest epoch interval
-        _currentEpoch = getCurrentEpoch();
+    function vestedDiscountPercentage() public view returns (uint256) {
+        return _maxDiscount * (block.timestamp - _releaseTime) / _duration;
     }
 
     /**
-     * @dev Get the current discount in terms of percentage for the vesting schedule.
+     * @dev Returns discount for achieved from vesting
      */
-    function getDiscount() public view returns (uint256){
-        require(_currentEpoch > 0, "Vesting Schedule is not Up yet.");
-        return _currentEpoch * discountPerEpoch() / 100;
+    function vestedDiscount() public view returns (uint256) {
+        if (block.timestamp < _releaseTime) {
+            return 0;
+        }
+        uint256 currentBalance = address(this).balance;
+        uint256 discount = currentBalance * vestedDiscountPercentage();
+        
+        return discount;
     }
 
     /**
@@ -139,9 +113,7 @@ contract NFTIntervalTimeLock {
         require(block.timestamp >= releaseTime(), "BasicNFTTimelock: current time is before release time");
         require(nft().ownerOf(tokenId()) == address(this), "BasicNFTTimelock: no NFT to release");
         
-        updateEpoch();
-        uint256 discount = getDiscount();
-        uint256 ethDiscount = discount * address(this).balance;
+        uint256 ethDiscount = vestedDiscount();
         (bool sent, ) = msg.sender.call{value: ethDiscount}("");
         require(sent, "Failed to send Ether");
 
