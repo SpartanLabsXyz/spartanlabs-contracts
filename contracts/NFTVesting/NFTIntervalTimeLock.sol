@@ -112,10 +112,9 @@ contract NFTIntervalTimeLock {
     }
 
     function getEpochsLeft() public view returns (uint256){
-        return _maxEpoch - _currentEpoch;
+        return _maxEpoch - getCurrentEpoch();
     }
     
-
     function updateEpoch() private {
         require(block.timestamp >= _releaseTime + _epochInterval, "Vesting Schedule is not Up yet.");
         require(_currentEpoch <= _maxEpoch, "Vesting Schedule is over.");
