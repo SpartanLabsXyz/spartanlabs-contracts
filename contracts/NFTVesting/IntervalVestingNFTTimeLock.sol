@@ -150,7 +150,7 @@ contract IntervalVestingNFTTimeLock {
 
     /**
      * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
-     * time. Sends the discount to the beneficiary.
+     * time. Sends the discount in Eth to the beneficiary.
      */
 
     function release() public virtual validRelease{
