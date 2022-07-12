@@ -29,13 +29,13 @@ contract IntervalVestingNFTTimeLock {
     uint256 private immutable _maxDiscount;
 
     // Max number of Interval for vesting
-    uint256 public immutable _maxInterval;
+    uint256 private immutable _maxInterval;
 
     // Current interval after @variable _releaseTime
-    uint256 public _currentInterval;
+    uint256 private _currentInterval;
 
     // Duration for each Interval
-    uint256 public _intervalDuration;
+    uint256 private _intervalDuration;
 
     modifier validRelease() {
         require(
@@ -61,7 +61,7 @@ contract IntervalVestingNFTTimeLock {
     ) {
         require(
             releaseTime_ > block.timestamp,
-            "BasicNFTTimelock: release time is before current time"
+            "TimeLock: release time is before current time"
         );
         _nft = nft_;
         _tokenId = tokenId_;
@@ -111,7 +111,6 @@ contract IntervalVestingNFTTimeLock {
     /**
      * @dev Returns current Interval
      */
-     */
     function getCurrentInterval() public view returns (uint256) {
         if (block.timestamp < _releaseTime) {
             return 0;
@@ -153,16 +152,16 @@ contract IntervalVestingNFTTimeLock {
      * time. Sends the discount in Eth to the beneficiary.
      */
 
-    function release() public virtual validRelease{
+    function release() public virtual validRelease {
         require(
             nft().ownerOf(tokenId()) == address(this),
-            "BasicNFTTimelock: no NFT to release"
+            "TimeLock: no NFT to release for user"
         );
 
         updateInterval();
         uint256 discount = getDiscount();
         uint256 ethDiscount = discount * address(this).balance;
-        (bool sent, ) = beneficiary().call{value: ethDiscount}(""); 
+        (bool sent, ) = beneficiary().call{value: ethDiscount}("");
         require(sent, "Failed to send Ether");
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());

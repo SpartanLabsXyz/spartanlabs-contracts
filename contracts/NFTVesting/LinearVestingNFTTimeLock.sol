@@ -110,8 +110,8 @@ contract LinearVestingNFTTimeLock {
      * time.
      */
     function release() public virtual {
-        require(block.timestamp >= releaseTime(), "BasicNFTTimelock: current time is before release time");
-        require(nft().ownerOf(tokenId()) == address(this), "BasicNFTTimelock: no NFT to release");
+        require(block.timestamp >= releaseTime(), "TimeLock: current time is before release time");
+        require(nft().ownerOf(tokenId()) == address(this), "TimeLock: no NFT to release for user");
         
         uint256 ethDiscount = vestedDiscount();
         (bool sent, ) = beneficiary().call{value: ethDiscount}(""); 
