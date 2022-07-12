@@ -13,7 +13,7 @@ import "./IERC721.sol";
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".
  */
-contract LinearVestingNFTTimeLock {
+contract ConvexVestingNFTTimeLock {
 
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
@@ -33,6 +33,12 @@ contract LinearVestingNFTTimeLock {
     // Duration that token will vest
     uint256 private _maxDuration;
 
+    // Growth rate for vesting. M in MX^n
+    uint256 private _growthRate;
+
+    // exponent for vesting
+    uint8 private _exponent;
+
 
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
@@ -45,7 +51,9 @@ contract LinearVestingNFTTimeLock {
         address beneficiary_,
         uint256 releaseTime_,
         uint256 maxDiscount_,
-        uint256 maxDuration_
+        uint256 maxDuration_,
+        uint256 growthRate_,
+        uint8 exponent_
     ) {
         require(releaseTime_ > block.timestamp, "BasicNFTTimelock: release time is before current time");
         _nft = nft_;
@@ -54,6 +62,8 @@ contract LinearVestingNFTTimeLock {
         _releaseTime = releaseTime_;
         _maxDiscount = maxDiscount_;
         _maxDuration = maxDuration_;
+        _growthRate = growthRate_;
+        _exponent = exponent_;
     }
 
     /**
@@ -92,13 +102,20 @@ contract LinearVestingNFTTimeLock {
         if (block.timestamp < _releaseTime) {
             return 0;
         }
-        return _maxDiscount * (block.timestamp - _releaseTime) / _maxDuration;
+        uint256 discountPercentage = _growthRate * block.timestamp ** _exponent;
+
+        if (discountPercentage > _maxDiscount) {
+            return _maxDiscount;
+        }
+            return discountPercentage;
     }
+
 
     /**
      * @dev Returns discount for achieved from vesting
      */
     function vestedDiscount() public view returns (uint256) {
+
         uint256 currentBalance = address(this).balance;
         uint256 discount = currentBalance * vestedDiscountPercentage();
         
