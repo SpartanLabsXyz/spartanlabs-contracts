@@ -13,7 +13,7 @@ import "./IERC721.sol";
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".
  */
-contract LinearVestingNFTTimeLock {
+contract ConvexVestingNFTTimeLock {
 
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
@@ -31,7 +31,7 @@ contract LinearVestingNFTTimeLock {
     uint256 private immutable _maxDiscount;
 
     // Duration that token will vest
-    uint256 private _duration;
+    uint256 private _maxDuration;
 
 
     /**
@@ -45,7 +45,7 @@ contract LinearVestingNFTTimeLock {
         address beneficiary_,
         uint256 releaseTime_,
         uint256 maxDiscount_,
-        uint256 duration_
+        uint256 maxDuration_
     ) {
         require(releaseTime_ > block.timestamp, "BasicNFTTimelock: release time is before current time");
         _nft = nft_;
@@ -53,7 +53,7 @@ contract LinearVestingNFTTimeLock {
         _beneficiary = beneficiary_;
         _releaseTime = releaseTime_;
         _maxDiscount = maxDiscount_;
-        _duration = duration_;
+        _maxDuration = maxDuration_;
     }
 
     /**
@@ -89,7 +89,7 @@ contract LinearVestingNFTTimeLock {
      */
 
     function vestedDiscountPercentage() public view returns (uint256) {
-        return _maxDiscount * (block.timestamp - _releaseTime) / _duration;
+        return _maxDiscount * (block.timestamp - _releaseTime) / _maxDuration;
     }
 
     /**
@@ -107,7 +107,7 @@ contract LinearVestingNFTTimeLock {
 
     /**
      * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
-     * time.
+     * time. Sends the discount in Eth to the beneficiary.
      */
     function release() public virtual {
         require(block.timestamp >= releaseTime(), "TimeLock: current time is before release time");
