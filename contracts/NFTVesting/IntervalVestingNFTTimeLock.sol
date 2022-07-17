@@ -7,10 +7,10 @@ import "./IERC721.sol";
 
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
- * NFT after a given release time.
- *
- * Useful for simple vesting schedules like "whitelisted addresses get their NFT
- * after 1 year".
+ * NFT after a given release time with a discount sent to the beneficiary based on
+ * the vesting duration of the NFT.
+ * 
+ * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
  */
 contract IntervalVestingNFTTimeLock {
     // ERC721 basic token smart contract
@@ -29,13 +29,13 @@ contract IntervalVestingNFTTimeLock {
     uint256 private immutable _maxDiscount;
 
     // Max number of Interval for vesting
-    uint256 private immutable _maxInterval;
+    uint256 private immutable _maxIntervals;
 
     // Duration for each Interval
     uint256 private _intervalDuration;
 
-    // Current interval after @variable _releaseTime
-    uint256 private _currentInterval;
+    // Discount for every interval passed
+    uint256 private _discountPerInterval;
 
 
 
@@ -50,7 +50,10 @@ contract IntervalVestingNFTTimeLock {
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
      * `beneficiary_` when {release} is invoked after `releaseTime_`. The release time is specified as a Unix timestamp
-     * (in seconds).
+     * (in seconds). For every set of duration passed after the release time, the number of intervals would increase. 
+     *  The discount will then be applied to the beneficiary according to number of intervals the token has been vested for. 
+     * 
+     *  The developer would have to send ETH to this contract for discount to be applied after initialization
      */
     constructor(
         IERC721 nft_,
@@ -59,20 +62,35 @@ contract IntervalVestingNFTTimeLock {
         uint256 releaseTime_,
         uint256 maxDiscount_,
         uint256 maxInterval_,
-        uint256 intervalDuration_
+        uint256 intervalDuration_,
+        uint256 discountPerInterval_
     ) {
         require(
             releaseTime_ > block.timestamp,
             "TimeLock: release time is before current time"
         );
+        require(
+            0 < maxDiscount_ <= 100,
+            "TimeLock: max discount is greater than 100% or 0. Please use a valid maxDiscount."
+        );
+        require(
+            discountPerInterval_ * maxInterval_ == maxDiscount_,
+            "TimeLock: discount per interval is not equal to max discount. Please use a valid discountPerInterval."
+        );
+        require(
+            address(this).balance >= discountPerInterval_ * maxInterval_,
+            "TimeLock: not enough ETH to pay for discount. Please send more ETH."
+        );        
+
+
         _nft = nft_;
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
         _releaseTime = releaseTime_;
         _maxDiscount = maxDiscount_;
-        _maxInterval = maxInterval_;
+        _maxIntervals = maxInterval_;
         _intervalDuration = intervalDuration_;
-        _currentInterval = 0;
+        _discountPerInterval = discountPerInterval_;
     }
 
     /**
@@ -115,7 +133,7 @@ contract IntervalVestingNFTTimeLock {
      * @dev Returns discount for locking at each Interval
      */
     function discountPerInterval() public view virtual returns (uint256) {
-        return _maxDiscount / _maxInterval;
+        return _discountPerInterval;
     }
 
     /**
@@ -133,8 +151,8 @@ contract IntervalVestingNFTTimeLock {
             return 0;
         }
         uint256 interval = vestedDuration() / _intervalDuration;
-        if (interval > _maxInterval) {
-            interval = _maxInterval;
+        if (interval > _maxIntervals) {
+            interval = _maxIntervals;
         }
         return interval;
     }
@@ -143,24 +161,21 @@ contract IntervalVestingNFTTimeLock {
      * @dev Returns the remaining interval before max vesting interval
      */
     function getIntervalsLeft() public view returns (uint256) {
-        return _maxInterval - _currentInterval;
+        return _maxIntervals - getCurrentInterval();
     }
 
-    /**
-     * @dev Updates the interval after release schedule
-     */
-    function updateInterval() private validRelease {
-        require(_currentInterval <= _maxInterval, "Vesting Schedule is over.");
-        // floor the current Interval to the nearest Interval interval
-        _currentInterval = getCurrentInterval();
-    }
 
     /**
      * @dev Get the current discount in terms of percentage for the vesting schedule.
+     *
+     *  Psuedocode of how discount can be calculated by developer
+     *  vested_time = block.timestamp - _releaseTime
+     *  intervals_passed = maximum(quotient of vested_time / interval_duration, max_intervals)
+     *  discount = intervals_passed * discount_per_interval
+
      */
-    function getDiscount() public view returns (uint256) {
-        require(_currentInterval > 0, "Vesting Schedule is not Up yet.");
-        return (_currentInterval * discountPerInterval()) / 100;
+    function getDiscountPercentage() public view returns (uint256) {
+        return getCurrentInterval() * discountPerInterval();
     }
 
     /**
@@ -173,8 +188,8 @@ contract IntervalVestingNFTTimeLock {
             nft().ownerOf(tokenId()) == address(this),
             "TimeLock: no NFT to release for user"
         );
+        require()
 
-        updateInterval();
         uint256 discount = getDiscount();
         uint256 ethDiscount = discount * address(this).balance;
         (bool sent, ) = beneficiary().call{value: ethDiscount}("");
@@ -182,4 +197,10 @@ contract IntervalVestingNFTTimeLock {
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
     }
+
+    
+    /**
+     * @dev Fallback function for eth to be sent to contract on Initialization.
+     */
+    fallback() external payable{}
 }
