@@ -23,10 +23,10 @@ contract IntervalVestingNFTTimeLock {
     address private immutable _beneficiary;
 
     // timestamp when token release is enabled
-    uint256 private immutable _releaseTime;
+    uint256 private immutable _cliffPeriod;
 
     // Max discount allowed for a token in percentage
-    uint256 private immutable _maxDiscount;
+    uint256 private immutable _maxDiscountPercentage;
 
     // Max number of Interval for vesting
     uint256 private immutable _maxIntervals;
@@ -42,7 +42,7 @@ contract IntervalVestingNFTTimeLock {
 
     modifier validRelease() {
         require(
-            block.timestamp >= _releaseTime + _intervalDuration,
+            block.timestamp >= _cliffPeriod + _intervalDuration,
             "Vesting Schedule is not Up yet."
         );
         _;
@@ -50,32 +50,34 @@ contract IntervalVestingNFTTimeLock {
 
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
-     * `beneficiary_` when {release} is invoked after `releaseTime_`. The release time is specified as a Unix timestamp
-     * (in seconds). For every set of duration passed after the release time, the number of intervals would increase.
+     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The release time is specified as a Unix timestamp
+     * (in seconds).
+     *
+     *  For every set of duration passed after the release time, the number of intervals would increase.
      *  The discount will then be applied to the beneficiary according to number of intervals the token has been vested for.
      *
-     *  The developer would have to send ETH to this contract on contract deployement for discount to be applied.
+     *  The developer would have to send ETH to this contract on contract deployement for discount to be applied
      */
     constructor(
         IERC721 nft_,
         uint256 tokenId_,
         address beneficiary_,
-        uint256 releaseTime_,
-        uint256 maxDiscount_,
+        uint256 cliffPeriod_,
+        uint256 maxDiscountPercentage_,
         uint256 maxInterval_,
         uint256 intervalDuration_,
         uint256 discountPerInterval_
     ) {
         require(
-            releaseTime_ > block.timestamp,
+            cliffPeriod_ > block.timestamp,
             "TimeLock: release time is before current time"
         );
         require(
-            maxDiscount_ <= 100,
-            "TimeLock: max discount is greater than 100%. Please use a valid maxDiscount."
+            maxDiscountPercentage_ <= 100,
+            "TimeLock: max discount is greater than 100%. Please use a valid maxDiscountPercentage."
         );
         require(
-            discountPerInterval_ * maxInterval_ == maxDiscount_,
+            discountPerInterval_ * maxInterval_ == maxDiscountPercentage_,
             "TimeLock: discount per interval is not equal to max discount. Please use a valid discountPerInterval."
         );
         require(
@@ -86,8 +88,8 @@ contract IntervalVestingNFTTimeLock {
         _nft = nft_;
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
-        _releaseTime = releaseTime_;
-        _maxDiscount = maxDiscount_;
+        _cliffPeriod = cliffPeriod_;
+        _maxDiscountPercentage = maxDiscountPercentage_;
         _maxIntervals = maxInterval_;
         _intervalDuration = intervalDuration_;
         _discountPerInterval = discountPerInterval_;
@@ -117,15 +119,15 @@ contract IntervalVestingNFTTimeLock {
     /**
      * @dev Returns the time when the NFT are released in seconds since Unix Interval (i.e. Unix timestamp).
      */
-    function releaseTime() public view virtual returns (uint256) {
-        return _releaseTime;
+    function cliffPeriod() public view virtual returns (uint256) {
+        return _cliffPeriod;
     }
 
     /**
      * @dev Returns the max discount allowed for a token in percentage.
      */
-    function maxDiscount() public view virtual returns (uint256) {
-        return _maxDiscount;
+    function maxDiscountPercentage() public view virtual returns (uint256) {
+        return _maxDiscountPercentage;
     }
 
     /**
@@ -139,14 +141,14 @@ contract IntervalVestingNFTTimeLock {
      * @dev Returns duration that NFT has been locked and vesting
      */
     function vestedDuration() public view returns (uint256) {
-        return uint256(block.timestamp - _releaseTime);
+        return uint256(block.timestamp - _cliffPeriod);
     }
 
     /**
      * @dev Returns current vesting interval
      */
     function getCurrentInterval() public view returns (uint256) {
-        if (block.timestamp < _releaseTime) {
+        if (block.timestamp < _cliffPeriod) {
             return 0;
         }
         uint256 interval = vestedDuration() / _intervalDuration;
@@ -167,10 +169,9 @@ contract IntervalVestingNFTTimeLock {
      * @dev Get the current discount in terms of percentage for the vesting schedule.
      *
      *  Psuedocode of how discount can be calculated by developer
-     *  vested_time = block.timestamp - _releaseTime
+     *  vested_time = block.timestamp - _cliffPeriod
      *  intervals_passed = maximum(quotient of vested_time / interval_duration, max_intervals)
      *  discount = intervals_passed * discount_per_interval
-
      */
     function getDiscountPercentage() public view returns (uint256) {
         return getCurrentInterval() * discountPerInterval();

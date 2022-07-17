@@ -23,36 +23,51 @@ contract LinearVestingNFTTimeLock {
     address private immutable _beneficiary;
 
     // timestamp when token release is enabled and when discount starts to vest
-    uint256 private immutable _releaseTime;
+    uint256 private immutable _cliffPeriod;
 
     // Max discount allowed for a token in percentage
-    uint256 private immutable _maxDiscount;
+    uint256 private immutable _maxDiscountPercentage;
 
     // Duration that token will vest
     uint256 private _maxDuration;
 
+    // Events
+    event EthReceived(address indexed sender, uint256 amount);
+
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
-     * `beneficiary_` when {release} is invoked after `releaseTime_`. The release time is specified as a Unix timestamp
+     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The release time is specified as a Unix timestamp
      * (in seconds).
+     *
+     *  The discount accumulation for beneficiary is based off a linear model y = mx
+     *  The developer would have to send ETH to this contract on contract deployement for discount to be applied.
      */
     constructor(
         IERC721 nft_,
         uint256 tokenId_,
         address beneficiary_,
-        uint256 releaseTime_,
-        uint256 maxDiscount_,
+        uint256 cliffPeriod_,
+        uint256 maxDiscountPercentage_,
         uint256 maxDuration_
     ) {
         require(
-            releaseTime_ > block.timestamp,
+            cliffPeriod_ > block.timestamp,
             "BasicNFTTimelock: release time is before current time"
         );
+        require(
+            maxDiscountPercentage_ <= 100,
+            "TimeLock: max discount is greater than 100%. Please use a valid maxDiscountPercentage."
+        );
+        require(
+            address(this).balance > 0,
+            "Time:Lock: Eth should be sent to contract before initialization"
+        );
+
         _nft = nft_;
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
-        _releaseTime = releaseTime_;
-        _maxDiscount = maxDiscount_;
+        _cliffPeriod = cliffPeriod_;
+        _maxDiscountPercentage = maxDiscountPercentage_;
         _maxDuration = maxDuration_;
     }
 
@@ -80,26 +95,29 @@ contract LinearVestingNFTTimeLock {
     /**
      * @dev Returns the time when the NFT are released in seconds since Unix epoch (i.e. Unix timestamp).
      */
-    function releaseTime() public view virtual returns (uint256) {
-        return _releaseTime;
+    function cliffPeriod() public view virtual returns (uint256) {
+        return _cliffPeriod;
     }
+
     /**
      * @dev Returns the max duration that a token is allowed to vest
      */
     function maxDuration() public view virtual returns (uint256) {
         return _maxDuration;
     }
+
     /**
      * @dev Returns the max discount allowed for a token in percentage.
      */
-    function maxDiscount() public view virtual returns (uint256) {
-        return _maxDiscount;
+    function maxDiscountPercentage() public view virtual returns (uint256) {
+        return _maxDiscountPercentage;
     }
+
     /**
      * @dev Returns duration that NFT has been locked and vesting
      */
     function vestedDuration() public view returns (uint256) {
-        return block.timestamp - _releaseTime;
+        return block.timestamp - _cliffPeriod;
     }
 
     /**
@@ -107,10 +125,10 @@ contract LinearVestingNFTTimeLock {
      */
 
     function getDiscountPercentage() public view returns (uint256) {
-        if (block.timestamp < _releaseTime) {
+        if (block.timestamp < _cliffPeriod) {
             return 0;
         }
-        return (_maxDiscount * vestedDuration()) / maxDuration();
+        return (_maxDiscountPercentage * vestedDuration()) / maxDuration();
     }
 
     /**
@@ -129,7 +147,7 @@ contract LinearVestingNFTTimeLock {
      */
     function release() public virtual {
         require(
-            block.timestamp >= releaseTime(),
+            block.timestamp >= cliffPeriod(),
             "TimeLock: current time is before release time"
         );
         require(
@@ -143,4 +161,16 @@ contract LinearVestingNFTTimeLock {
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
     }
+
+    /**
+     * @dev Fallback function for eth to be sent to contract on Initialization. Emits EthReceived Event
+     */
+    receive() external payable {
+        emit EthReceived(msg.sender, msg.value);
+    }
+
+    /**
+     * @dev Fallback function in the event that the contract is called directly.
+     */
+    fallback() external payable {}
 }

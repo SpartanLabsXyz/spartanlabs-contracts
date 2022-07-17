@@ -5,7 +5,6 @@
 pragma solidity ^0.8.0;
 import "./IERC721.sol";
 
-
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
  * NFT after a given release time.
@@ -14,7 +13,6 @@ import "./IERC721.sol";
  * after 1 year".
  */
 contract ConvexVestingNFTTimeLock {
-
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
 
@@ -25,10 +23,10 @@ contract ConvexVestingNFTTimeLock {
     address private immutable _beneficiary;
 
     // timestamp when token release is enabled and when discount starts to vest
-    uint256 private immutable _releaseTime;
+    uint256 private immutable _cliffPeriod;
 
     // Max discount allowed for a token in percentage
-    uint256 private immutable _maxDiscount;
+    uint256 private immutable _maxDiscountPercentage;
 
     // Duration that token will vest
     uint256 private _maxDuration;
@@ -39,28 +37,30 @@ contract ConvexVestingNFTTimeLock {
     // exponent for vesting
     uint8 private _exponent;
 
-
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
-     * `beneficiary_` when {release} is invoked after `releaseTime_`. The release time is specified as a Unix timestamp
+     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The release time is specified as a Unix timestamp
      * (in seconds).
      */
     constructor(
         IERC721 nft_,
         uint256 tokenId_,
         address beneficiary_,
-        uint256 releaseTime_,
-        uint256 maxDiscount_,
+        uint256 cliffPeriod_,
+        uint256 maxDiscountPercentage_,
         uint256 maxDuration_,
         uint256 growthRate_,
         uint8 exponent_
     ) {
-        require(releaseTime_ > block.timestamp, "BasicNFTTimelock: release time is before current time");
+        require(
+            cliffPeriod_ > block.timestamp,
+            "BasicNFTTimelock: release time is before current time"
+        );
         _nft = nft_;
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
-        _releaseTime = releaseTime_;
-        _maxDiscount = maxDiscount_;
+        _cliffPeriod = cliffPeriod_;
+        _maxDiscountPercentage = maxDiscountPercentage_;
         _maxDuration = maxDuration_;
         _growthRate = growthRate_;
         _exponent = exponent_;
@@ -90,35 +90,33 @@ contract ConvexVestingNFTTimeLock {
     /**
      * @dev Returns the time when the NFT are released in seconds since Unix epoch (i.e. Unix timestamp).
      */
-    function releaseTime() public view virtual returns (uint256) {
-        return _releaseTime;
+    function cliffPeriod() public view virtual returns (uint256) {
+        return _cliffPeriod;
     }
 
-     /**
+    /**
      * @dev Returns discount percentage for achieved from vesting
      */
 
     function vestedDiscountPercentage() public view returns (uint256) {
-        if (block.timestamp < _releaseTime) {
+        if (block.timestamp < _cliffPeriod) {
             return 0;
         }
-        uint256 discountPercentage = _growthRate * block.timestamp ** _exponent;
+        uint256 discountPercentage = _growthRate * block.timestamp**_exponent;
 
-        if (discountPercentage > _maxDiscount) {
-            return _maxDiscount;
+        if (discountPercentage > _maxDiscountPercentage) {
+            return _maxDiscountPercentage;
         }
-            return discountPercentage;
+        return discountPercentage;
     }
-
 
     /**
      * @dev Returns discount for achieved from vesting
      */
     function vestedDiscount() public view returns (uint256) {
-
         uint256 currentBalance = address(this).balance;
         uint256 discount = currentBalance * vestedDiscountPercentage();
-        
+
         return discount;
     }
 
@@ -127,11 +125,17 @@ contract ConvexVestingNFTTimeLock {
      * time. Sends the discount in Eth to the beneficiary.
      */
     function release() public virtual {
-        require(block.timestamp >= releaseTime(), "TimeLock: current time is before release time");
-        require(nft().ownerOf(tokenId()) == address(this), "TimeLock: no NFT to release for user");
-        
+        require(
+            block.timestamp >= cliffPeriod(),
+            "TimeLock: current time is before release time"
+        );
+        require(
+            nft().ownerOf(tokenId()) == address(this),
+            "TimeLock: no NFT to release for user"
+        );
+
         uint256 ethDiscount = vestedDiscount();
-        (bool sent, ) = beneficiary().call{value: ethDiscount}(""); 
+        (bool sent, ) = beneficiary().call{value: ethDiscount}("");
         require(sent, "Failed to send Ether");
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
