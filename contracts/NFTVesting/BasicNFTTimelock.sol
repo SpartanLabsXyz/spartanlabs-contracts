@@ -5,10 +5,9 @@
 pragma solidity ^0.8.0;
 import "./IERC721.sol";
 
-
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
- * NFT after a given release time.
+ * NFT after a given cliff period.
  *
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".
@@ -30,7 +29,7 @@ contract BasicNFTTimelock {
 
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
-     * `beneficiary_` when {release} is invoked after `releaseTime_`. The release time is specified as a Unix timestamp
+     * `beneficiary_` when {release} is invoked after `releaseTime_`. The cliff period is specified as a Unix timestamp
      * (in seconds).
      */
     constructor(
@@ -39,7 +38,10 @@ contract BasicNFTTimelock {
         address beneficiary_,
         uint256 releaseTime_
     ) {
-        require(releaseTime_ > block.timestamp, "BasicNFTTimelock: release time is before current time");
+        require(
+            releaseTime_ > block.timestamp,
+            "BasicNFTTimelock: cliff period is before current time"
+        );
         _nft = nft_;
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
@@ -79,8 +81,14 @@ contract BasicNFTTimelock {
      * time.
      */
     function release() public virtual {
-        require(block.timestamp >= releaseTime(), "BasicNFTTimelock: current time is before release time");
-        require(nft().ownerOf(tokenId()) == address(this), "BasicNFTTimelock: no NFT to release");
+        require(
+            block.timestamp >= releaseTime(),
+            "BasicNFTTimelock: current time is before cliff period"
+        );
+        require(
+            nft().ownerOf(tokenId()) == address(this),
+            "BasicNFTTimelock: no NFT to release"
+        );
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
     }

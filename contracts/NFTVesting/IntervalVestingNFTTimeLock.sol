@@ -7,7 +7,7 @@ import "./IERC721.sol";
 
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
- * NFT after a given release time with a discount sent to the beneficiary based on
+ * NFT after a given cliff period with a discount sent to the beneficiary based on
  * the vesting duration of the NFT.
  *
  * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
@@ -32,10 +32,10 @@ contract IntervalVestingNFTTimeLock {
     uint256 private immutable _maxIntervals;
 
     // Duration for each Interval
-    uint256 private _intervalDuration;
+    uint256 private immutable _intervalDuration;
 
     // Discount for every interval passed
-    uint256 private _discountPerInterval;
+    uint256 private immutable _discountPerInterval;
 
     // Events
     event EthReceived(address indexed sender, uint256 amount);
@@ -50,10 +50,10 @@ contract IntervalVestingNFTTimeLock {
 
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
-     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The release time is specified as a Unix timestamp
+     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The cliff period is specified as a Unix timestamp
      * (in seconds).
      *
-     *  For every set of duration passed after the release time, the number of intervals would increase.
+     *  For every set of duration passed after the cliff period, the number of intervals would increase.
      *  The discount will then be applied to the beneficiary according to number of intervals the token has been vested for.
      *
      *  The developer would have to send ETH to this contract on contract deployement for discount to be applied
@@ -70,7 +70,7 @@ contract IntervalVestingNFTTimeLock {
     ) {
         require(
             cliffPeriod_ > block.timestamp,
-            "TimeLock: release time is before current time"
+            "TimeLock: cliff period is before current time"
         );
         require(
             maxDiscountPercentage_ <= 100,
@@ -137,23 +137,31 @@ contract IntervalVestingNFTTimeLock {
         return _discountPerInterval;
     }
 
+    function getMaxIntervals() public view virtual returns (uint256) {
+        return _maxIntervals;
+    }
+
+    function getIntervalDuration() public view virtual returns (uint256) {
+        return _intervalDuration;
+    }
+
     /**
      * @dev Returns duration that NFT has been locked and vesting
      */
     function vestedDuration() public view returns (uint256) {
-        return uint256(block.timestamp - _cliffPeriod);
+        return uint256(block.timestamp - cliffPeriod());
     }
 
     /**
      * @dev Returns current vesting interval
      */
     function getCurrentInterval() public view returns (uint256) {
-        if (block.timestamp < _cliffPeriod) {
+        if (block.timestamp < cliffPeriod()) {
             return 0;
         }
-        uint256 interval = vestedDuration() / _intervalDuration;
-        if (interval > _maxIntervals) {
-            interval = _maxIntervals;
+        uint256 interval = vestedDuration() / getIntervalDuration();
+        if (interval > getMaxIntervals()) {
+            interval = getMaxIntervals();
         }
         return interval;
     }
@@ -162,7 +170,7 @@ contract IntervalVestingNFTTimeLock {
      * @dev Returns the remaining interval before max vesting interval
      */
     function getIntervalsLeft() public view returns (uint256) {
-        return _maxIntervals - getCurrentInterval();
+        return getMaxIntervals() - getCurrentInterval();
     }
 
     /**

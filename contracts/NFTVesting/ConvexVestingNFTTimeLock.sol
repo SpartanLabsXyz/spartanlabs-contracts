@@ -7,7 +7,7 @@ import "./IERC721.sol";
 
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
- * NFT after a given release time.
+ * NFT after a given cliff period.
  *
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".
@@ -29,18 +29,25 @@ contract ConvexVestingNFTTimeLock {
     uint256 private immutable _maxDiscountPercentage;
 
     // Duration that token will vest
-    uint256 private _maxDuration;
+    uint256 private immutable _maxDuration;
 
-    // Growth rate for vesting. M in MX^n
-    uint256 private _growthRate;
+    // Growth rate for vesting. M in MX^exponent
+    uint256 private immutable _growthRate;
 
-    // exponent for vesting
-    uint8 private _exponent;
+    // Exponent for vesting. exponent in MX^exponent
+    uint8 private immutable _exponent;
+
+    // Events
+    event EthReceived(address indexed sender, uint256 amount);
 
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
-     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The release time is specified as a Unix timestamp
+     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The cliff period is specified as a Unix timestamp
      * (in seconds).
+     *
+     *  The discount accumulation for beneficiary is based off a convex model y = mx^exponent
+     *  The developer would have to send ETH to this contract on contract deployement for discount to be applied.
+     *
      */
     constructor(
         IERC721 nft_,
@@ -54,8 +61,17 @@ contract ConvexVestingNFTTimeLock {
     ) {
         require(
             cliffPeriod_ > block.timestamp,
-            "BasicNFTTimelock: release time is before current time"
+            "Timelock: cliff period is before current time"
         );
+        require(
+            maxDiscountPercentage_ <= 100,
+            "TimeLock: max discount is greater than 100%. Please use a valid maxDiscountPercentage."
+        );
+        require(
+            address(this).balance > 0,
+            "Time:Lock: Eth should be sent to contract before initialization"
+        );
+
         _nft = nft_;
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
@@ -95,17 +111,53 @@ contract ConvexVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns discount percentage for achieved from vesting
+     * @dev Returns max discount percentage that beneficiary can receive
      */
+    function maxDiscountPercentage() public view virtual returns (uint256) {
+        return _maxDiscountPercentage;
+    }
 
-    function vestedDiscountPercentage() public view returns (uint256) {
-        if (block.timestamp < _cliffPeriod) {
+    /**
+     * @dev Returns max duration that token will vest for before hitting max discount percentage
+     */
+    function maxDuration() public view virtual returns (uint256) {
+        return _maxDuration;
+    }
+
+    /**
+     * @dev Returns growth rate for vesting. M in MX^exponent
+     */
+    function growthRate() public view virtual returns (uint256) {
+        return _growthRate;
+    }
+
+    /**
+     * @dev Returns Exponent for vesting. exponent in MX^exponent
+     */
+    function exponent() public view virtual returns (uint8) {
+        return _exponent;
+    }
+
+    /**
+     * @dev Returns duration that NFT has been locked and vesting
+     */
+    function vestedDuration() public view returns (uint256) {
+        return block.timestamp - cliffPeriod();
+    }
+
+    /**
+     * @dev Returns current discount percentage for achieved from vesting. 
+     * Based off: discount = mx**exponent
+     */
+    function getDiscountPercentage() public view returns (uint256) {
+        if (block.timestamp < cliffPeriod()) {
             return 0;
         }
-        uint256 discountPercentage = _growthRate * block.timestamp**_exponent;
+        uint256 discountPercentage = growthRate() *
+            vestedDuration()**exponent();
 
-        if (discountPercentage > _maxDiscountPercentage) {
-            return _maxDiscountPercentage;
+        if (discountPercentage > maxDiscountPercentage()) {
+            return maxDiscountPercentage();
         }
         return discountPercentage;
     }
@@ -113,11 +165,8 @@ contract ConvexVestingNFTTimeLock {
     /**
      * @dev Returns discount for achieved from vesting
      */
-    function vestedDiscount() public view returns (uint256) {
-        uint256 currentBalance = address(this).balance;
-        uint256 discount = currentBalance * vestedDiscountPercentage();
-
-        return discount;
+    function getDiscount() public view returns (uint256) {
+        return address(this).balance * getDiscountPercentage();
     }
 
     /**
@@ -127,17 +176,29 @@ contract ConvexVestingNFTTimeLock {
     function release() public virtual {
         require(
             block.timestamp >= cliffPeriod(),
-            "TimeLock: current time is before release time"
+            "TimeLock: current time is before cliff period"
         );
         require(
             nft().ownerOf(tokenId()) == address(this),
             "TimeLock: no NFT to release for user"
         );
 
-        uint256 ethDiscount = vestedDiscount();
+        uint256 ethDiscount = getDiscount();
         (bool sent, ) = beneficiary().call{value: ethDiscount}("");
         require(sent, "Failed to send Ether");
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
     }
+
+    /**
+     * @dev Fallback function for eth to be sent to contract on Initialization. Emits EthReceived Event
+     */
+    receive() external payable {
+        emit EthReceived(msg.sender, msg.value);
+    }
+
+    /**
+     * @dev Fallback function in the event that the contract is called directly.
+     */
+    fallback() external payable {}
 }

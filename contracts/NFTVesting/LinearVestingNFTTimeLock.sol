@@ -7,7 +7,7 @@ import "./IERC721.sol";
 
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
- * NFT after a given release time.
+ * NFT after a given cliff period.
  *
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".
@@ -36,7 +36,7 @@ contract LinearVestingNFTTimeLock {
 
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
-     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The release time is specified as a Unix timestamp
+     * `beneficiary_` when {release} is invoked after `cliffPeriod_`. The cliff period is specified as a Unix timestamp
      * (in seconds).
      *
      *  The discount accumulation for beneficiary is based off a linear model y = mx
@@ -52,7 +52,7 @@ contract LinearVestingNFTTimeLock {
     ) {
         require(
             cliffPeriod_ > block.timestamp,
-            "BasicNFTTimelock: release time is before current time"
+            "BasicNFTTimelock: cliff period is before current time"
         );
         require(
             maxDiscountPercentage_ <= 100,
@@ -117,28 +117,25 @@ contract LinearVestingNFTTimeLock {
      * @dev Returns duration that NFT has been locked and vesting
      */
     function vestedDuration() public view returns (uint256) {
-        return block.timestamp - _cliffPeriod;
+        return block.timestamp - cliffPeriod();
     }
 
     /**
      * @dev Returns discount percentage for achieved from vesting
+     * Based off: discount = mx
      */
-
     function getDiscountPercentage() public view returns (uint256) {
-        if (block.timestamp < _cliffPeriod) {
+        if (block.timestamp < cliffPeriod()) {
             return 0;
         }
-        return (_maxDiscountPercentage * vestedDuration()) / maxDuration();
+        return (maxDiscountPercentage() * vestedDuration()) / maxDuration();
     }
 
     /**
      * @dev Returns discount for achieved from vesting
      */
     function getDiscount() public view returns (uint256) {
-        uint256 currentBalance = address(this).balance;
-        uint256 discount = currentBalance * getDiscountPercentage();
-
-        return discount;
+        return address(this).balance * getDiscountPercentage();
     }
 
     /**
@@ -148,7 +145,7 @@ contract LinearVestingNFTTimeLock {
     function release() public virtual {
         require(
             block.timestamp >= cliffPeriod(),
-            "TimeLock: current time is before release time"
+            "TimeLock: current time is before cliff period"
         );
         require(
             nft().ownerOf(tokenId()) == address(this),
