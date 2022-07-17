@@ -31,11 +31,13 @@ contract IntervalVestingNFTTimeLock {
     // Max number of Interval for vesting
     uint256 private immutable _maxInterval;
 
+    // Duration for each Interval
+    uint256 private _intervalDuration;
+
     // Current interval after @variable _releaseTime
     uint256 private _currentInterval;
 
-    // Duration for each Interval
-    uint256 private _intervalDuration;
+
 
     modifier validRelease() {
         require(
@@ -102,6 +104,14 @@ contract IntervalVestingNFTTimeLock {
     }
 
     /**
+     * @dev Returns the max discount allowed for a token in percentage.
+     */
+     function maxDiscount() public view virtual returns (uint256) {
+        return _maxDiscount;
+     }
+
+
+    /**
      * @dev Returns discount for locking at each Interval
      */
     function discountPerInterval() public view virtual returns (uint256) {
@@ -109,14 +119,20 @@ contract IntervalVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns current Interval
+     * @dev Returns duration that NFT has been locked and vesting
+     */
+    function vestedDuration() public view returns (uint256) {
+        return uint256(block.timestamp - _releaseTime);
+    }
+
+    /**
+     * @dev Returns current vesting interval
      */
     function getCurrentInterval() public view returns (uint256) {
         if (block.timestamp < _releaseTime) {
             return 0;
         }
-        uint256 interval = uint256(block.timestamp - _releaseTime) /
-            _intervalDuration;
+        uint256 interval = vestedDuration() / _intervalDuration;
         if (interval > _maxInterval) {
             interval = _maxInterval;
         }
