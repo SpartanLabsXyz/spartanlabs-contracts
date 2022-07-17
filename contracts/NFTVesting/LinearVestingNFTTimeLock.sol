@@ -5,7 +5,6 @@
 pragma solidity ^0.8.0;
 import "./IERC721.sol";
 
-
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
  * NFT after a given release time.
@@ -14,7 +13,6 @@ import "./IERC721.sol";
  * after 1 year".
  */
 contract LinearVestingNFTTimeLock {
-
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
 
@@ -33,7 +31,6 @@ contract LinearVestingNFTTimeLock {
     // Duration that token will vest
     uint256 private _maxDuration;
 
-
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
      * `beneficiary_` when {release} is invoked after `releaseTime_`. The release time is specified as a Unix timestamp
@@ -47,7 +44,10 @@ contract LinearVestingNFTTimeLock {
         uint256 maxDiscount_,
         uint256 maxDuration_
     ) {
-        require(releaseTime_ > block.timestamp, "BasicNFTTimelock: release time is before current time");
+        require(
+            releaseTime_ > block.timestamp,
+            "BasicNFTTimelock: release time is before current time"
+        );
         _nft = nft_;
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
@@ -83,25 +83,43 @@ contract LinearVestingNFTTimeLock {
     function releaseTime() public view virtual returns (uint256) {
         return _releaseTime;
     }
+    /**
+     * @dev Returns the max duration that a token is allowed to vest
+     */
+    function maxDuration() public view virtual returns (uint256) {
+        return _maxDuration;
+    }
+    /**
+     * @dev Returns the max discount allowed for a token in percentage.
+     */
+    function maxDiscount() public view virtual returns (uint256) {
+        return _maxDiscount;
+    }
+    /**
+     * @dev Returns duration that NFT has been locked and vesting
+     */
+    function vestedDuration() public view returns (uint256) {
+        return block.timestamp - _releaseTime;
+    }
 
-     /**
+    /**
      * @dev Returns discount percentage for achieved from vesting
      */
 
-    function vestedDiscountPercentage() public view returns (uint256) {
+    function getDiscountPercentage() public view returns (uint256) {
         if (block.timestamp < _releaseTime) {
             return 0;
         }
-        return _maxDiscount * (block.timestamp - _releaseTime) / _maxDuration;
+        return (_maxDiscount * vestedDuration()) / maxDuration();
     }
 
     /**
      * @dev Returns discount for achieved from vesting
      */
-    function vestedDiscount() public view returns (uint256) {
+    function getDiscount() public view returns (uint256) {
         uint256 currentBalance = address(this).balance;
-        uint256 discount = currentBalance * vestedDiscountPercentage();
-        
+        uint256 discount = currentBalance * getDiscountPercentage();
+
         return discount;
     }
 
@@ -110,11 +128,17 @@ contract LinearVestingNFTTimeLock {
      * time. Sends the discount in Eth to the beneficiary.
      */
     function release() public virtual {
-        require(block.timestamp >= releaseTime(), "TimeLock: current time is before release time");
-        require(nft().ownerOf(tokenId()) == address(this), "TimeLock: no NFT to release for user");
-        
-        uint256 ethDiscount = vestedDiscount();
-        (bool sent, ) = beneficiary().call{value: ethDiscount}(""); 
+        require(
+            block.timestamp >= releaseTime(),
+            "TimeLock: current time is before release time"
+        );
+        require(
+            nft().ownerOf(tokenId()) == address(this),
+            "TimeLock: no NFT to release for user"
+        );
+
+        uint256 ethDiscount = getDiscount();
+        (bool sent, ) = beneficiary().call{value: ethDiscount}("");
         require(sent, "Failed to send Ether");
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
