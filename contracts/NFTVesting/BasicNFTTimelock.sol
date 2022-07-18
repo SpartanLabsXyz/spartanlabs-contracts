@@ -7,7 +7,10 @@ import "./IERC721.sol";
 
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
- * NFT after a given cliff period.
+ * NFT after a given lock period.
+ *
+ * Developers would have to perform the following actions for the locking of NFT:
+ * Deploy -> Approve -> Transfer
  *
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".

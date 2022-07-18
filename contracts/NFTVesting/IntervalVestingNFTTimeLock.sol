@@ -9,7 +9,9 @@ import "./IERC721.sol";
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
  * NFT after a given vesting start time with a discount sent to the beneficiary based on
  * the vesting duration of the NFT.
- * On every interval epoch, the discount accrued by the locker
+ * 
+ * On every interval epoch, the discount accrued by the locker is based off a set amount. 
+ *
  * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
  */
 contract IntervalVestingNFTTimeLock {

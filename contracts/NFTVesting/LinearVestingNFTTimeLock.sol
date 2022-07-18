@@ -8,9 +8,12 @@ import "./IERC721.sol";
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
  * NFT after a given vesting start time.
+ * After the vesting start time, the discount will start to accumulate for the locker linearly.
  *
- * Useful for simple vesting schedules like "whitelisted addresses get their NFT
- * after 1 year".
+ * Developers would have to perform the following actions for the locking of NFT:
+ * Deploy -> Approve -> Transfer
+ *
+ * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
  */
 contract LinearVestingNFTTimeLock {
     // ERC721 basic token smart contract
@@ -22,7 +25,7 @@ contract LinearVestingNFTTimeLock {
     // beneficiary of token after they are released
     address private immutable _beneficiary;
 
-    // timestamp when token release is enabled and when discount starts to vest. Also known as cliff period.   
+    // timestamp when token release is enabled and when discount starts to vest. Also known as cliff period.
     uint256 private immutable _vestingStartTime;
 
     // Max discount allowed for a token in percentage
