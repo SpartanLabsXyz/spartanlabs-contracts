@@ -9,8 +9,8 @@ import "./IERC721.sol";
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
  * NFT after a given vesting start time with a discount sent to the beneficiary based on
  * the vesting duration of the NFT.
- * 
- * On every interval epoch, the discount accrued by the locker is based off a set amount. 
+ *
+ * On every interval epoch, the discount accrued by the locker is based off a set amount.
  *
  * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
  */
@@ -197,6 +197,7 @@ contract IntervalVestingNFTTimeLock {
     /**
      * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
      * time. Sends the discount in Eth to the beneficiary.
+     * Reverts if transfer of NFT fails.
      */
     function release() public virtual validRelease {
         require(
@@ -209,6 +210,10 @@ contract IntervalVestingNFTTimeLock {
         require(sent, "Failed to send Ether");
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
+        require(
+            nft().ownerOf(tokenId()) != address(this),
+            "BasicNFTTimelock: NFT still owned by this contract"
+        );
     }
 
     /**

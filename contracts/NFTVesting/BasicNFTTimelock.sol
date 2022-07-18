@@ -16,8 +16,6 @@ import "./IERC721.sol";
  * after 1 year".
  */
 contract BasicNFTTimelock {
-    // TODO: Add SafeERC721 interaction?
-
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
 
@@ -82,6 +80,7 @@ contract BasicNFTTimelock {
     /**
      * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
      * time.
+     * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
         require(
@@ -94,5 +93,9 @@ contract BasicNFTTimelock {
         );
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
+        require(
+            nft().ownerOf(tokenId()) != address(this),
+            "BasicNFTTimelock: NFT still owned by this contract"
+        );
     }
 }

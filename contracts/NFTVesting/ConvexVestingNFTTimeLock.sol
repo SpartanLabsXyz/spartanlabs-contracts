@@ -164,6 +164,7 @@ contract ConvexVestingNFTTimeLock {
     /**
      * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
      * time. Sends the discount in Eth to the beneficiary.
+     * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
         require(
@@ -180,6 +181,10 @@ contract ConvexVestingNFTTimeLock {
         require(sent, "Failed to send Ether");
 
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
+        require(
+            nft().ownerOf(tokenId()) != address(this),
+            "BasicNFTTimelock: NFT still owned by this contract"
+        );
     }
 
     /**
