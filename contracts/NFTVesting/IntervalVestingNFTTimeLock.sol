@@ -24,11 +24,8 @@ contract IntervalVestingNFTTimeLock {
     // beneficiary of token after they are released
     address private immutable _beneficiary;
 
-    // timestamp when token release is enabled
+    // timestamp when token release is enabled and vesting starts.
     uint256 private immutable _vestingStartTime;
-
-    // Max discount allowed for a token in percentage
-    uint256 private immutable _maxDiscountPercentage;
 
     // Max number of Interval for vesting
     uint256 private immutable _maxIntervals;
@@ -91,7 +88,6 @@ contract IntervalVestingNFTTimeLock {
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
         _vestingStartTime = vestingStartTime_;
-        _maxDiscountPercentage = maxDiscountPercentage_;
         _maxIntervals = maxInterval_;
         _intervalDuration = intervalDuration_;
         _discountPerInterval = discountPerInterval_;
@@ -126,13 +122,6 @@ contract IntervalVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns the max discount allowed for a token in percentage.
-     */
-    function maxDiscountPercentage() public view virtual returns (uint256) {
-        return _maxDiscountPercentage;
-    }
-
-    /**
      * @dev Returns discount for locking at each Interval
      */
     function discountPerInterval() public view virtual returns (uint256) {
@@ -155,7 +144,7 @@ contract IntervalVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns current vesting interval
+     * @dev Returns current vesting interval. 
      */
     function getCurrentInterval() public view returns (uint256) {
         if (block.timestamp < vestingStartTime()) {
