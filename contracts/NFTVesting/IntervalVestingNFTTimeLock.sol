@@ -39,14 +39,6 @@ contract IntervalVestingNFTTimeLock {
     // Events
     event EthReceived(address indexed sender, uint256 amount);
 
-    modifier validRelease() {
-        require(
-            block.timestamp >= _vestingStartTime + _intervalDuration,
-            "Vesting Schedule is not Up yet."
-        );
-        _;
-    }
-
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
      * `beneficiary_` when {release} is invoked after `vestingStartTime_`. The vesting start time is specified as a Unix timestamp
@@ -140,21 +132,33 @@ contract IntervalVestingNFTTimeLock {
      * @dev Returns duration that NFT has been locked and vesting
      */
     function vestedDuration() public view returns (uint256) {
-        return uint256(block.timestamp - vestingStartTime());
+        return block.timestamp - vestingStartTime();
+    }
+
+    /**
+     * @dev Returns the number of interval that the token has been vested for after the vesting start time. 
+     */
+    function intervalsPassed() public view returns (uint256) {
+        return vestedDuration() / getIntervalDuration();
     }
 
     /**
      * @dev Returns current vesting interval. 
      */
     function getCurrentInterval() public view returns (uint256) {
+        // Before vesting start time, the interval is 0.
         if (block.timestamp < vestingStartTime()) {
             return 0;
         }
-        uint256 interval = vestedDuration() / getIntervalDuration();
-        if (interval > getMaxIntervals()) {
-            interval = getMaxIntervals();
+
+        // After vesting start time, the interval interval count turns to 1.
+        uint256 intervals = 1 + intervalsPassed();
+
+
+        if (intervals > getMaxIntervals()) {
+            intervals = getMaxIntervals();
         }
-        return interval;
+        return intervals;
     }
 
     /**
@@ -185,19 +189,30 @@ contract IntervalVestingNFTTimeLock {
 
     /**
      * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
-     * time. Sends the discount in Eth to the beneficiary.
+     * time {vestingStartTime}. 
+     *
+     * Sends the discount in Eth to the beneficiary.
      * Reverts if transfer of NFT fails.
      */
-    function release() public virtual validRelease {
+    function release() public virtual {
+
+        // Check if 
+        require(
+            block.timestamp >= _vestingStartTime,
+            "Vesting Schedule is not Up yet."
+        );
+        // Check if the NFT is already released
         require(
             nft().ownerOf(tokenId()) == address(this),
             "TimeLock: no NFT to release for this address"
         );
 
+        // Sending discount to beneficiary
         uint256 ethDiscount = getDiscount();
         (bool sent, ) = beneficiary().call{value: ethDiscount}("");
         require(sent, "Failed to send Ether");
 
+        // Check if beneficiary has received NFT, if not, revert
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
         require(
             nft().ownerOf(tokenId()) != address(this),
