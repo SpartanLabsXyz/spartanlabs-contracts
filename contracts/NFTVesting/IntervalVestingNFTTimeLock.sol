@@ -54,7 +54,6 @@ contract IntervalVestingNFTTimeLock {
         uint256 tokenId_,
         address beneficiary_,
         uint256 vestingStartTime_,
-        uint256 maxDiscountPercentage_,
         uint256 maxInterval_,
         uint256 intervalDuration_,
         uint256 discountPerInterval_
@@ -63,14 +62,7 @@ contract IntervalVestingNFTTimeLock {
             vestingStartTime_ > block.timestamp,
             "TimeLock: vesting start time is before current time"
         );
-        require(
-            maxDiscountPercentage_ <= 100,
-            "TimeLock: max discount is greater than 100%. Please use a valid maxDiscountPercentage."
-        );
-        require(
-            discountPerInterval_ * maxInterval_ == maxDiscountPercentage_,
-            "TimeLock: discount per interval is not equal to max discount. Please use a valid discountPerInterval."
-        );
+
         require(
             address(this).balance >= discountPerInterval_ * maxInterval_,
             "TimeLock: not enough ETH to pay for discount. Please send more ETH."
@@ -136,14 +128,14 @@ contract IntervalVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns the number of interval that the token has been vested for after the vesting start time. 
+     * @dev Returns the number of interval that the token has been vested for after the vesting start time.
      */
     function intervalsPassed() public view returns (uint256) {
         return vestedDuration() / getIntervalDuration();
     }
 
     /**
-     * @dev Returns current vesting interval. 
+     * @dev Returns current vesting interval.
      */
     function getCurrentInterval() public view returns (uint256) {
         // Before vesting start time, the interval is 0.
@@ -153,7 +145,6 @@ contract IntervalVestingNFTTimeLock {
 
         // After vesting start time, the interval interval count turns to 1.
         uint256 intervals = 1 + intervalsPassed();
-
 
         if (intervals > getMaxIntervals()) {
             intervals = getMaxIntervals();
@@ -189,14 +180,13 @@ contract IntervalVestingNFTTimeLock {
 
     /**
      * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
-     * time {vestingStartTime}. 
+     * time {vestingStartTime}.
      *
      * Sends the discount in Eth to the beneficiary.
      * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
-
-        // Check if 
+        // Check if
         require(
             block.timestamp >= _vestingStartTime,
             "Vesting Schedule is not Up yet."

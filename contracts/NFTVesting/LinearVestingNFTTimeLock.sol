@@ -29,7 +29,7 @@ contract LinearVestingNFTTimeLock {
     uint256 private immutable _vestingStartTime;
 
     // Max discount allowed for a token in percentage
-    uint256 private immutable _maxDiscountPercentage;
+    uint8 private immutable _maxDiscountPercentage = 100;
 
     // Duration that token will vest
     uint256 private _maxDuration;
@@ -50,17 +50,13 @@ contract LinearVestingNFTTimeLock {
         uint256 tokenId_,
         address beneficiary_,
         uint256 vestingStartTime_,
-        uint256 maxDiscountPercentage_,
         uint256 maxDuration_
     ) {
         require(
             vestingStartTime_ > block.timestamp,
             "BasicNFTTimelock: vesting start time is before current time"
         );
-        require(
-            maxDiscountPercentage_ <= 100,
-            "TimeLock: max discount is greater than 100%. Please use a valid maxDiscountPercentage."
-        );
+
         require(
             address(this).balance > 0,
             "Time:Lock: Eth should be sent to contract before initialization"
@@ -70,7 +66,6 @@ contract LinearVestingNFTTimeLock {
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
         _vestingStartTime = vestingStartTime_;
-        _maxDiscountPercentage = maxDiscountPercentage_;
         _maxDuration = maxDuration_;
     }
 
