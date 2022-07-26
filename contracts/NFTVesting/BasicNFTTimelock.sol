@@ -41,7 +41,7 @@ contract BasicNFTTimelock {
     ) {
         require(
             releaseTime_ > block.timestamp,
-            "BasicNFTTimelock: cliff period is before current time"
+            "BasicNFTTimelock: releaseTime_ has to be in the future"
         );
         _nft = nft_;
         _tokenId = tokenId_;
@@ -83,16 +83,22 @@ contract BasicNFTTimelock {
      * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
+        // Check if current time is after vesting start time
         require(
             block.timestamp >= releaseTime(),
             "BasicNFTTimelock: current time is before cliff period"
         );
+        
+        // Check if the NFT is already released
         require(
             nft().ownerOf(tokenId()) == address(this),
             "BasicNFTTimelock: no NFT to release"
         );
 
+        // Transfer NFT to beneficiary
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
+
+        // Check if beneficiary has received NFT, if not, revert
         require(
             nft().ownerOf(tokenId()) != address(this),
             "BasicNFTTimelock: NFT still owned by this contract"

@@ -25,7 +25,7 @@ contract LinearVestingNFTTimeLock {
     // beneficiary of token after they are released
     address private immutable _beneficiary;
 
-    // timestamp when token release is enabled and when discount starts to vest. Also known as cliff period.
+    // timestamp when token release is enabled and when discount starts to vest.
     uint256 private immutable _vestingStartTime;
 
     // Max discount allowed for a token in percentage
@@ -125,7 +125,7 @@ contract LinearVestingNFTTimeLock {
 
     /**
      * @dev Returns discount percentage for achieved from vesting
-     * Based off: discount = mx
+     * Based off the formula: discount = mx
      */
     function getDiscountPercentage() public view returns (uint256) {
         if (block.timestamp < vestingStartTime()) {
@@ -147,20 +147,27 @@ contract LinearVestingNFTTimeLock {
      * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
+        // Check if current time is after vesting start time
         require(
             block.timestamp >= vestingStartTime(),
             "TimeLock: current time is before vesting start time"
         );
+
+        // Check if the NFT is already released
         require(
             nft().ownerOf(tokenId()) == address(this),
             "TimeLock: no NFT to release for this address"
         );
 
+        // Sending discount to beneficiary
         uint256 ethDiscount = getDiscount();
         (bool sent, ) = beneficiary().call{value: ethDiscount}("");
         require(sent, "Failed to send Ether");
 
+        // Transfer NFT to beneficiary
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
+
+        // Check if beneficiary has received NFT, if not, revert
         require(
             nft().ownerOf(tokenId()) != address(this),
             "BasicNFTTimelock: NFT still owned by this contract"
