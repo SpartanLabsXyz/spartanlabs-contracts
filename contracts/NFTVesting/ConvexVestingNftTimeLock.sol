@@ -62,7 +62,18 @@ contract ConvexVestingNftTimeLock {
 
         require(
             address(this).balance > 0,
-            "Time:Lock: Eth should be sent to contract before initialization"
+            "TimeLock: Eth should be sent to contract before initialization"
+        );
+
+        // Growth rate cannot be zero or it would result in a curve with negative gradient.
+        require(
+            growthRate_ > 0,
+            "Timelock: growth rate should be greater than 0"
+        );
+
+        require(
+            exponent_ > 0,
+            "Timelock: exponent should be greater than 0"
         );
 
         _nft = nft_;
@@ -124,9 +135,10 @@ contract ConvexVestingNftTimeLock {
 
     /**
      * @dev Returns current discount ratio for achieved from vesting.
-     * Based off the formula: discount = mx**exponent.
+     * Based off the formula: discount = mx**exponent, where x is the vested duration.
      *
-     * The maximum ratio is 1.
+     *
+     * The maximum ratio is 1. 
      */
     function discountRatio() public view returns (uint256) {
         if (block.timestamp < vestingStartTime()) {
