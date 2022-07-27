@@ -109,7 +109,6 @@ contract LinearVestingNftTimeLock {
         return block.timestamp - vestingStartTime();
     }
 
-    
     /**
      * @dev Returns discount accrued in Eth according to duration vested
      *
@@ -118,13 +117,18 @@ contract LinearVestingNftTimeLock {
      * Maximum discount ratio is 1.
      */
     function getDiscount() public view returns (uint256) {
-
         if (block.timestamp < vestingStartTime()) {
             return 0;
         }
 
-        return address(this).balance * (vestedDuration() / maxDuration()); // Check if this returns int 
-        // return  vestedDuration() * (address(this).balance/ maxDuration()); // Check if this returns int 
+        uint256 discount = vestedDuration() * (address(this).balance / maxDuration()); // The reason why the balance is divided by maxDuration is because vestedDuration()/maxDuration() = 0.
+        
+        // Prevent discount from being greater than balance
+        if (discount > address(this).balance) {
+            discount = address(this).balance;
+        }
+
+        return discount;
     }
 
     /**
