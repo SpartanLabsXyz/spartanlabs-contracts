@@ -38,6 +38,7 @@ contract ConvexVestingNftTimeLock {
     // Exponent for vesting. exponent in MX^exponent
     uint8 private immutable _exponent;
 
+
     // Events
     event EthReceived(address indexed sender, uint256 amount);
 
@@ -146,31 +147,17 @@ contract ConvexVestingNftTimeLock {
         return block.timestamp - vestingStartTime();
     }
 
-    /**
-     * @dev Returns current discount ratio for achieved from vesting.
-     * Based off the formula: discount = mx**exponent, where x is the vested duration.
-     *
-     *
-     * The maximum ratio is 1. 
-     */
-    function discountRatio() public view returns (uint256) {
-        if (block.timestamp < vestingStartTime()) {
-            return 0;
-        }
-        uint256 discountPercentage = growthRate() *
-            vestedDuration()**exponent();
-
-        if (discountPercentage > 1) {
-            return 1;
-        }
-        return discountPercentage;
-    }
 
     /**
      * @dev Returns discount accrued in Eth according to duration vested
+     * Based off the formula: discount = mx**exponent, where x is the vested duration.
      */
     function getDiscount() public view returns (uint256) {
-        return address(this).balance * discountRatio();
+        uint256 discount = growthRate() * vestedDuration()**exponent();
+        if (discount > address(this).balance) {
+            return address(this).balance;
+        }
+        return discount;
     }
 
     /**
