@@ -47,7 +47,11 @@ contract IntervalVestingNFTTimeLock {
      *  For every set of duration passed after the vesting start time, the number of intervals would increase.
      *  The discount will then be applied to the beneficiary according to number of intervals the token has been vested for.
      *
-     *  The developer would have to send ETH to this contract on contract deployement for discount to be applied
+     *  The developer would have to send ETH to this contract on contract deployement for discount to be applied.
+     *  The amount of ETH sent to this contract is the total discount that beneficiary will receive.
+     *
+     *  Developers would have to perform the following actions for the locking of NFT:
+     *  Deploy with Eth sent to contract -> Approve NFT Transfer -> Transfer of NFT to contract
      */
     constructor(
         IERC721 nft_,
@@ -112,11 +116,17 @@ contract IntervalVestingNFTTimeLock {
         return _discountPerInterval;
     }
 
-    function getMaxIntervals() public view virtual returns (uint256) {
+    /**
+     * @dev Returns the maximum number of intervals set for vesting.
+     */
+    function maxIntervals() public view virtual returns (uint256) {
         return _maxIntervals;
     }
 
-    function getIntervalDuration() public view virtual returns (uint256) {
+    /**
+     * @dev Returns the set duration of each interval.
+     */
+    function intervalDuration() public view virtual returns (uint256) {
         return _intervalDuration;
     }
 
@@ -131,13 +141,13 @@ contract IntervalVestingNFTTimeLock {
      * @dev Returns the number of interval that the token has been vested for after the vesting start time.
      */
     function intervalsPassed() public view returns (uint256) {
-        return vestedDuration() / getIntervalDuration();
+        return vestedDuration() / intervalDuration();
     }
 
     /**
      * @dev Returns current vesting interval.
      */
-    function getCurrentInterval() public view returns (uint256) {
+    function currentInterval() public view returns (uint256) {
         // Before vesting start time, the interval is 0.
         if (block.timestamp < vestingStartTime()) {
             return 0;
@@ -146,8 +156,8 @@ contract IntervalVestingNFTTimeLock {
         // After vesting start time, the interval interval count turns to 1.
         uint256 intervals = 1 + intervalsPassed();
 
-        if (intervals > getMaxIntervals()) {
-            intervals = getMaxIntervals();
+        if (intervals > maxIntervals()) {
+            intervals = maxIntervals();
         }
         return intervals;
     }
@@ -156,19 +166,14 @@ contract IntervalVestingNFTTimeLock {
      * @dev Returns the remaining interval before max vesting interval
      */
     function getIntervalsLeft() public view returns (uint256) {
-        return getMaxIntervals() - getCurrentInterval();
+        return maxIntervals() - currentInterval();
     }
 
     /**
-     * @dev Get the current discount in terms of percentage for the vesting schedule.
-     *
-     *  Psuedocode of how discount can be calculated by developer
-     *  vested_time = block.timestamp - _vestingStartTime
-     *  intervals_passed = maximum(quotient of vested_time / interval_duration, max_intervals)
-     *  discount = intervals_passed * discount_per_interval
+     * @dev Get the discount accrued up til the current interval in terms of percentage for the vesting schedule.
      */
     function getDiscountPercentage() public view returns (uint256) {
-        return getCurrentInterval() * discountPerInterval();
+        return currentInterval() * discountPerInterval();
     }
 
     /**

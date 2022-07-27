@@ -9,12 +9,12 @@ import "./IERC721.sol";
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
  * NFT after a given vesting start time.
  *
- * After the vesting start time, the discount will start to accumulate for the locker linearly.
- *
- * Developers would have to perform the following actions for the locking of NFT:
- * Deploy -> Approve -> Transfer
+ * After the vesting start time, the discount will start to accumulate for the locker non linearly according to mx^n formula.
  *
  * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
+ *
+ * Developers would have to perform the following actions for the locking of NFT:
+ * Deploy with Eth sent to contract -> Approve NFT Transfer -> Transfer of NFT to contract
  */
 contract ConvexVestingNFTTimeLock {
     // ERC721 basic token smart contract
@@ -105,13 +105,6 @@ contract ConvexVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns max discount percentage that beneficiary can receive
-     */
-    function maxDiscountPercentage() public view virtual returns (uint256) {
-        return _maxDiscountPercentage;
-    }
-
-    /**
      * @dev Returns growth rate for vesting. M in MX^exponent
      */
     function growthRate() public view virtual returns (uint256) {
@@ -134,7 +127,9 @@ contract ConvexVestingNFTTimeLock {
 
     /**
      * @dev Returns current discount percentage for achieved from vesting.
-     * Based off the formula: discount = mx**exponent
+     * Based off the formula: discount = mx**exponent.
+     *
+     * The maximum ratio is 1.
      */
     function getDiscountPercentage() public view returns (uint256) {
         if (block.timestamp < vestingStartTime()) {
@@ -143,8 +138,8 @@ contract ConvexVestingNFTTimeLock {
         uint256 discountPercentage = growthRate() *
             vestedDuration()**exponent();
 
-        if (discountPercentage > maxDiscountPercentage()) {
-            return maxDiscountPercentage();
+        if (discountPercentage > 1) {
+            return 1;
         }
         return discountPercentage;
     }

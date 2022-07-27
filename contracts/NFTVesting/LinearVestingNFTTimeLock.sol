@@ -10,10 +10,11 @@ import "./IERC721.sol";
  * NFT after a given vesting start time.
  * After the vesting start time, the discount will start to accumulate for the locker linearly.
  *
- * Developers would have to perform the following actions for the locking of NFT:
- * Deploy -> Approve -> Transfer
+ * The developer would have to send ETH to this contract on contract deployement for discount to be applied.
+ * The amount of ETH sent to this contract is the total discount that beneficiary will receive.
  *
- * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
+ * Developers would have to perform the following actions for the locking of NFT:
+ * Deploy with Eth sent to contract -> Approve NFT Transfer -> Transfer of NFT to contract
  */
 contract LinearVestingNFTTimeLock {
     // ERC721 basic token smart contract
@@ -27,9 +28,6 @@ contract LinearVestingNFTTimeLock {
 
     // timestamp when token release is enabled and when discount starts to vest.
     uint256 private immutable _vestingStartTime;
-
-    // Max discount allowed for a token in percentage
-    uint8 private immutable _maxDiscountPercentage = 100;
 
     // Duration that token will vest
     uint256 private _maxDuration;
@@ -105,13 +103,6 @@ contract LinearVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns the max discount allowed for a token in percentage.
-     */
-    function maxDiscountPercentage() public view virtual returns (uint256) {
-        return _maxDiscountPercentage;
-    }
-
-    /**
      * @dev Returns duration that NFT has been locked and vesting
      */
     function vestedDuration() public view returns (uint256) {
@@ -126,7 +117,7 @@ contract LinearVestingNFTTimeLock {
         if (block.timestamp < vestingStartTime()) {
             return 0;
         }
-        return (maxDiscountPercentage() * vestedDuration()) / maxDuration();
+        return vestedDuration() / maxDuration();
     }
 
     /**
