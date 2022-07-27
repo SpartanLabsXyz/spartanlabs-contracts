@@ -49,7 +49,7 @@ contract LinearVestingNftTimeLock {
         address beneficiary_,
         uint256 vestingStartTime_,
         uint256 maxDuration_
-    ) {
+    ) payable {
         require(
             vestingStartTime_ > block.timestamp,
             "BasicNFTTimelock: vesting start time is before current time"

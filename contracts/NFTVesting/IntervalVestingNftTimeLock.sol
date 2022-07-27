@@ -58,7 +58,7 @@ contract IntervalVestingNftTimeLock {
         uint256 vestingStartTime_,
         uint256 maxInterval_,
         uint256 intervalDuration_
-    ) {
+    ) payable {
         require(
             vestingStartTime_ > block.timestamp,
             "TimeLock: vesting start time is before current time"

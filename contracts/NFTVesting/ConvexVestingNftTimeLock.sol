@@ -54,7 +54,7 @@ contract ConvexVestingNftTimeLock {
         uint256 vestingStartTime_,
         uint256 growthRate_,
         uint8 exponent_
-    ) {
+    ) payable {
         require(
             vestingStartTime_ > block.timestamp,
             "Timelock: vesting start time is before current time"
