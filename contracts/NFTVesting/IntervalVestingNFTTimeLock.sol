@@ -33,8 +33,6 @@ contract IntervalVestingNFTTimeLock {
     // Duration for each Interval
     uint256 private immutable _intervalDuration;
 
-    // Discount for every interval passed. M
-    uint256 private immutable _discountPerInterval;
 
     // Events
     event EthReceived(address indexed sender, uint256 amount);
@@ -60,16 +58,15 @@ contract IntervalVestingNFTTimeLock {
         uint256 vestingStartTime_,
         uint256 maxInterval_,
         uint256 intervalDuration_,
-        uint256 discountPerInterval_
     ) {
         require(
             vestingStartTime_ > block.timestamp,
             "TimeLock: vesting start time is before current time"
         );
-
+        
         require(
-            address(this).balance >= discountPerInterval_ * maxInterval_,
-            "TimeLock: not enough ETH to pay for discount. Please send more ETH."
+            address(this).balance > 0,
+            "Time:Lock: Eth should be sent to contract before initialization"
         );
 
         _nft = nft_;
@@ -78,7 +75,6 @@ contract IntervalVestingNFTTimeLock {
         _vestingStartTime = vestingStartTime_;
         _maxIntervals = maxInterval_;
         _intervalDuration = intervalDuration_;
-        _discountPerInterval = discountPerInterval_;
     }
 
     /**
@@ -107,13 +103,6 @@ contract IntervalVestingNFTTimeLock {
      */
     function vestingStartTime() public view virtual returns (uint256) {
         return _vestingStartTime;
-    }
-
-    /**
-     * @dev Returns discount for locking at each Interval
-     */
-    function discountPerInterval() public view virtual returns (uint256) {
-        return _discountPerInterval;
     }
 
     /**
@@ -171,10 +160,10 @@ contract IntervalVestingNFTTimeLock {
 
     /**
      * @dev Get the discount accrued up til the current interval in terms of ratio for the vesting schedule.
-     * Maximum discount ratio is 1.
+     *  Discount ratio is proportionally based on the number of intervals passed. Maximum discount ratio is 1.
      */
     function discountRatio() public view returns (uint256) {
-        return currentInterval() * discountPerInterval();
+        return currentInterval() / maxIntervals();
     }
 
     /**
@@ -192,7 +181,7 @@ contract IntervalVestingNFTTimeLock {
      * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
-        // Check if
+        // Check if vesting start time has passed.
         require(
             block.timestamp >= _vestingStartTime,
             "Vesting Schedule is not Up yet."
