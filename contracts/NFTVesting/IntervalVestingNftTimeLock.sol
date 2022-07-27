@@ -158,19 +158,14 @@ contract IntervalVestingNftTimeLock {
         return maxIntervals() - currentInterval();
     }
 
-    /**
-     * @dev Get the discount accrued up til the current interval in terms of ratio for the vesting schedule.
-     *  Discount ratio is proportionally based on the number of intervals passed. Maximum discount ratio is 1.
-     */
-    function discountRatio() public view returns (uint256) {
-        return currentInterval() / maxIntervals();
-    }
 
     /**
      * @dev Returns discount accrued by the user up until the current interval.
+     *      Discount ratio is the ratio of number of interval passed {currentInterval} to {maxIntervals}.
+     *      Maximum discount ratio is 1.
      */
     function getDiscount() public view returns (uint256) {
-        return discountRatio() * address(this).balance;
+        return address(this).balance * currentInterval() / maxIntervals();
     }
 
     /**
