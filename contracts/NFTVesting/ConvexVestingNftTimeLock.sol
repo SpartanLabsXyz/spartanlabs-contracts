@@ -29,9 +29,6 @@ contract ConvexVestingNftTimeLock {
     // timestamp when token release is enabled and when discount starts to vest.
     uint256 private immutable _vestingStartTime;
 
-    // Max discount allowed for a token in percentage
-    uint8 private immutable _maxDiscountPercentage = 100;
-
     // Growth rate for vesting. M in MX^exponent
     uint256 private immutable _growthRate;
 
