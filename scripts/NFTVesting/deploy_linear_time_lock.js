@@ -5,7 +5,9 @@ const { ethers } = require("hardhat");
 async function main() {
 	// Local Blockchain Deployment
 	const [owner] = await ethers.getSigners();
+	const ownerBalance = await ethers.provider.getBalance(owner.address);
 	console.log("Owner: ", owner.address);
+	console.log("Owner Balance: ", ethers.utils.formatEther(ownerBalance));
 
 	console.log("\nDeploying NFT contract...");
 
@@ -28,18 +30,21 @@ async function main() {
 	const blockNumBefore = await ethers.provider.getBlockNumber();
 	const blockBefore = await ethers.provider.getBlock(blockNumBefore);
 	const timestampBefore = blockBefore.timestamp;
-	const timestampAfter = timestampBefore + 100;
+	const vestingStartTime = timestampBefore + 100;
+	const maxDuration = 1000;
 	console.log("timestampBefore: ", timestampBefore);
 
 	console.log("\nDeploying TimeLock contract...");
 
-	// Deploying Timelock
-	const timeLock = await ethers.getContractFactory("BasicNftTimelock");
+	// Deploying Timelock and send ETH to TimeLock contract
+	const timeLock = await ethers.getContractFactory("LinearVestingNftTimeLock");
 	const timeLockInstance = await timeLock.deploy(
 		basicNFTInstance.address,
 		0,
 		owner.address,
-		timestampAfter 
+		vestingStartTime,
+		maxDuration,
+		{ value: ethers.utils.parseEther("1") }
 	);
 
 	await timeLockInstance.deployed();
@@ -58,23 +63,15 @@ async function main() {
 		0 // token id
 	);
 
-	// safe transfer from for only ERC721 Receiver implementer
-	// await basicNFTInstance["safeTransferFrom(address,address,uint256)"](
-	// 	owner.address,
-	// 	timeLockInstance.address,
-	// 	0
-	// );
-
-
 	// check owner of NFT after transfer to be timelock contract
 	const nftOwnerAfterTransfer = await basicNFTInstance.ownerOf(0);
 	console.log("nftOwnerAfterTransfer: ", nftOwnerAfterTransfer);
 
 	// Set new timestamp by speeding up time
 	await ethers.provider.send("evm_setNextBlockTimestamp", [
-		timestampBefore + 300,
+		timestampBefore + 188,
 	]);
-	// await ethers.provider.send("evm_mine"); // this one will have 02:00 PM as its timestamp
+	await ethers.provider.send("evm_mine"); // Fast forward time
 
 	// Get new timestamp
 	const blockNumAfter = await ethers.provider.getBlockNumber();
@@ -82,8 +79,47 @@ async function main() {
 	const currentTimeStamp = blockAfter.timestamp;
 	console.log("currentTimeStamp: ", currentTimeStamp, "\n");
 
+	// Get balance of timelock contract
+	const timeLockBalance = await ethers.provider.getBalance(
+		timeLockInstance.address
+	);
+	console.log("timeLockBalance: ", ethers.utils.formatEther(timeLockBalance));
+
+	// Get current discount
+	const currentDiscount = await timeLockInstance.getDiscount();
+	console.log(
+		"currentDiscount: ",
+		ethers.utils.formatEther(currentDiscount),
+		"\n"
+	);
+
 	// release NFT
-	console.log("Releasing NFT...");
+	console.log(
+		"Release Time: ",
+		ethers.utils.formatUnits(await timeLockInstance.vestingStartTime(), 18 - 18)
+	);
+	
+	console.log(
+		"Release Time: ",
+		ethers.utils.formatUnits(await timeLockInstance.vestingStartTime(), 18 - 18)
+	);
+
+	const blockNumBeforeRelease = await ethers.provider.getBlockNumber();
+	const blockBeforeRelease = await ethers.provider.getBlock(
+		blockNumBeforeRelease
+	);
+	console.log("Time Before Release:", blockBeforeRelease.timestamp, "\n");
+
+	// Get current discount
+	const currentDiscount2 = await timeLockInstance.getDiscount();
+	console.log(
+		"currentDiscount: ",
+		ethers.utils.formatEther(currentDiscount2),
+		"\n"
+	);
+
+	console.log("Releasing NFT... \n");
+
 	const releaseTx = await timeLockInstance.release();
 	const newNftOwner = await basicNFTInstance.ownerOf(0);
 	console.log("newNftOwner: ", newNftOwner); // same as original beneficiary
