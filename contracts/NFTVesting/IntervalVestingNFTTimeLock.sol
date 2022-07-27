@@ -57,7 +57,7 @@ contract IntervalVestingNFTTimeLock {
         address beneficiary_,
         uint256 vestingStartTime_,
         uint256 maxInterval_,
-        uint256 intervalDuration_,
+        uint256 intervalDuration_
     ) {
         require(
             vestingStartTime_ > block.timestamp,
