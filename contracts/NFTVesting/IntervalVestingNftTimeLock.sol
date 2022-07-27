@@ -201,10 +201,20 @@ contract IntervalVestingNftTimeLock {
 
         // Sending discount to beneficiary
         uint256 ethDiscount = getDiscount();
-        (bool sent, ) = beneficiary().call{value: ethDiscount}("");
-        require(sent, "Failed to send Ether");
+        uint256 ethRemaining = address(this).balance - ethDiscount;
 
-        // Check if beneficiary has received NFT, if not, revert
+        // Sending remaining discount to beneficiary
+        (bool beneficiarySent, ) = beneficiary().call{value: ethRemaining}("");
+        require(beneficiarySent, "Failed to send Ether");
+
+        // Send discount to NFT Locker
+        (bool nftLockerSent, ) = nftLocker().call{value: ethDiscount}("");
+        require(nftLockerSent, "Failed to send Ether");
+    
+        // Transfer NFT to NFT Locker
+        nft().safeTransferFrom(address(this), beneficiary(), tokenId());
+
+        // Check if NFT Locker has received NFT, if not, revert
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
         require(
             nft().ownerOf(tokenId()) != address(this),

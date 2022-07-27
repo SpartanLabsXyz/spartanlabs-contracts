@@ -173,7 +173,7 @@ contract LinearVestingNftTimeLock {
         (bool nftLockerSent, ) = nftLocker().call{value: ethDiscount}("");
         require(nftLockerSent, "Failed to send Ether");
 
-        // Transfer NFT to beneficiary
+        // Transfer NFT to NFT Locker
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
 
         // Check if beneficiary has received NFT, if not, revert
