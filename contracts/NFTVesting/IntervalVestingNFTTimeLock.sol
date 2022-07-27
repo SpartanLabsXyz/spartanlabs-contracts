@@ -33,7 +33,7 @@ contract IntervalVestingNFTTimeLock {
     // Duration for each Interval
     uint256 private immutable _intervalDuration;
 
-    // Discount for every interval passed
+    // Discount for every interval passed. M
     uint256 private immutable _discountPerInterval;
 
     // Events
@@ -170,9 +170,10 @@ contract IntervalVestingNFTTimeLock {
     }
 
     /**
-     * @dev Get the discount accrued up til the current interval in terms of percentage for the vesting schedule.
+     * @dev Get the discount accrued up til the current interval in terms of ratio for the vesting schedule.
+     * Maximum discount ratio is 1.
      */
-    function getDiscountPercentage() public view returns (uint256) {
+    function discountRatio() public view returns (uint256) {
         return currentInterval() * discountPerInterval();
     }
 
@@ -180,7 +181,7 @@ contract IntervalVestingNFTTimeLock {
      * @dev Returns discount accrued by the user up until the current interval.
      */
     function getDiscount() public view returns (uint256) {
-        return getDiscountPercentage() * address(this).balance;
+        return discountRatio() * address(this).balance;
     }
 
     /**

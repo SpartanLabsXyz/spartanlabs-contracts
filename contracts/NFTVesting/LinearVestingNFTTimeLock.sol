@@ -110,10 +110,11 @@ contract LinearVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns discount percentage for achieved from vesting
+     * @dev Returns discount ratio for achieved from vesting
      * Based off the formula: discount = mx
+     * Maximum ratio is 1.
      */
-    function getDiscountPercentage() public view returns (uint256) {
+    function discountRatio() public view returns (uint256) {
         if (block.timestamp < vestingStartTime()) {
             return 0;
         }
@@ -124,7 +125,7 @@ contract LinearVestingNFTTimeLock {
      * @dev Returns discount accrued in Eth according to duration vested
      */
     function getDiscount() public view returns (uint256) {
-        return address(this).balance * getDiscountPercentage();
+        return address(this).balance * discountRatio();
     }
 
     /**
