@@ -21,7 +21,10 @@ contract IntervalVestingNftTimeLock {
     // ERC721 basic token ID of contract being held
     uint256 private immutable _tokenId;
 
-    // beneficiary of token after they are released
+    // address of NFT Locker who would receive the NFT and discount when it is released.
+    address private immutable _nftLocker;
+
+    // address of beneficiary that will receive the remaining discount not claimed by the `_nftLocker`.
     address private immutable _beneficiary;
 
     // timestamp when token release is enabled and vesting starts.
@@ -54,6 +57,7 @@ contract IntervalVestingNftTimeLock {
     constructor(
         IERC721 nft_,
         uint256 tokenId_,
+        address nftLocker_,
         address beneficiary_,
         uint256 vestingStartTime_,
         uint256 maxInterval_,
@@ -71,6 +75,7 @@ contract IntervalVestingNftTimeLock {
 
         _nft = nft_;
         _tokenId = tokenId_;
+        _nftLocker = nftLocker_;
         _beneficiary = beneficiary_;
         _vestingStartTime = vestingStartTime_;
         _maxIntervals = maxInterval_;
@@ -92,7 +97,14 @@ contract IntervalVestingNftTimeLock {
     }
 
     /**
-     * @dev Returns the beneficiary that will receive the NFT.
+     * @dev Returns the NFT Locker address that will receive the NFT and ETH Discount.
+     */
+    function nftLocker() public view virtual returns (address) {
+        return _nftLocker;
+    }
+
+    /**
+     * @dev Returns the beneficiary that will receive the remaining ETH Discount.
      */
     function beneficiary() public view virtual returns (address) {
         return _beneficiary;
@@ -165,7 +177,7 @@ contract IntervalVestingNftTimeLock {
      *      Maximum discount ratio is 1.
      */
     function getDiscount() public view returns (uint256) {
-        return address(this).balance * currentInterval() / maxIntervals();
+        return  currentInterval() * (address(this).balance / maxIntervals());
     }
 
     /**
