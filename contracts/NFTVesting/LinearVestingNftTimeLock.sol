@@ -8,15 +8,15 @@ import "./IERC721.sol";
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
  * NFT after a given vesting start time.
+ * After the vesting start time, the discount will start to accumulate for the locker linearly.
  *
- * After the vesting start time, the discount will start to accumulate for the locker non linearly according to mx^n formula.
- *
- * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
+ * The developer would have to send ETH to this contract on contract deployement for discount to be applied.
+ * The amount of ETH sent to this contract is the total discount that beneficiary will receive.
  *
  * Developers would have to perform the following actions for the locking of NFT:
  * Deploy with Eth sent to contract -> Approve NFT Transfer -> Transfer of NFT to contract
  */
-contract ConvexVestingNFTTimeLock {
+contract LinearVestingNftTimeLock {
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
 
@@ -29,14 +29,8 @@ contract ConvexVestingNFTTimeLock {
     // timestamp when token release is enabled and when discount starts to vest.
     uint256 private immutable _vestingStartTime;
 
-    // Max discount allowed for a token in percentage
-    uint8 private immutable _maxDiscountPercentage = 100;
-
-    // Growth rate for vesting. M in MX^exponent
-    uint256 private immutable _growthRate;
-
-    // Exponent for vesting. exponent in MX^exponent
-    uint8 private immutable _exponent;
+    // Duration that token will vest
+    uint256 private _maxDuration;
 
     // Events
     event EthReceived(address indexed sender, uint256 amount);
@@ -46,21 +40,19 @@ contract ConvexVestingNFTTimeLock {
      * `beneficiary_` when {release} is invoked after `vestingStartTime_`. The vesting start time is specified as a Unix timestamp
      * (in seconds).
      *
-     *  The discount accumulation for beneficiary is based off a convex model y = mx^exponent
+     *  The discount accumulation during vesting for beneficiary is based off a linear model y = mx
      *  The developer would have to send ETH to this contract on contract deployement for discount to be applied.
-     *
      */
     constructor(
         IERC721 nft_,
         uint256 tokenId_,
         address beneficiary_,
         uint256 vestingStartTime_,
-        uint256 growthRate_,
-        uint8 exponent_
+        uint256 maxDuration_
     ) {
         require(
             vestingStartTime_ > block.timestamp,
-            "Timelock: vesting start time is before current time"
+            "BasicNFTTimelock: vesting start time is before current time"
         );
 
         require(
@@ -72,8 +64,7 @@ contract ConvexVestingNFTTimeLock {
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
         _vestingStartTime = vestingStartTime_;
-        _growthRate = growthRate_;
-        _exponent = exponent_;
+        _maxDuration = maxDuration_;
     }
 
     /**
@@ -105,17 +96,10 @@ contract ConvexVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns growth rate for vesting. M in MX^exponent
+     * @dev Returns the max duration that a token is allowed to vest
      */
-    function growthRate() public view virtual returns (uint256) {
-        return _growthRate;
-    }
-
-    /**
-     * @dev Returns Exponent for vesting. exponent in MX^exponent
-     */
-    function exponent() public view virtual returns (uint8) {
-        return _exponent;
+    function maxDuration() public view virtual returns (uint256) {
+        return _maxDuration;
     }
 
     /**
@@ -126,22 +110,15 @@ contract ConvexVestingNFTTimeLock {
     }
 
     /**
-     * @dev Returns current discount ratio for achieved from vesting.
-     * Based off the formula: discount = mx**exponent.
-     *
-     * The maximum ratio is 1.
+     * @dev Returns discount ratio for achieved from vesting
+     * Based off the formula: discount = mx
+     * Maximum ratio is 1.
      */
     function discountRatio() public view returns (uint256) {
         if (block.timestamp < vestingStartTime()) {
             return 0;
         }
-        uint256 discountPercentage = growthRate() *
-            vestedDuration()**exponent();
-
-        if (discountPercentage > 1) {
-            return 1;
-        }
-        return discountPercentage;
+        return vestedDuration() / maxDuration();
     }
 
     /**

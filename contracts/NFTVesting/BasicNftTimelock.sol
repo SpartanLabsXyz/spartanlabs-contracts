@@ -15,7 +15,7 @@ import "./IERC721.sol";
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".
  */
-contract BasicNFTTimelock {
+contract BasicNftTimelock {
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
 
