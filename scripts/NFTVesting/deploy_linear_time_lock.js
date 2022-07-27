@@ -4,10 +4,13 @@ const { ethers } = require("hardhat");
 
 async function main() {
 	// Local Blockchain Deployment
-	const [owner] = await ethers.getSigners();
-	const ownerBalance = await ethers.provider.getBalance(owner.address);
-	console.log("Owner: ", owner.address);
-	console.log("Owner Balance: ", ethers.utils.formatEther(ownerBalance));
+	const [nftLocker,beneficiary] = await ethers.getSigners();
+	const nftLockerBalance = await ethers.provider.getBalance(nftLocker.address);
+	console.log("nftLocker: ", nftLocker.address);
+	console.log(
+		"nftLocker Balance: ",
+		ethers.utils.formatEther(nftLockerBalance)
+	);
 
 	console.log("\nDeploying NFT contract...");
 
@@ -26,7 +29,7 @@ async function main() {
 	const nftOwner = await basicNFTInstance.ownerOf(0);
 	console.log(`nftOwner: ${nftOwner}`);
 
-	// getting timestamp
+	// Getting timestamp before deploying the contract
 	const blockNumBefore = await ethers.provider.getBlockNumber();
 	const blockBefore = await ethers.provider.getBlock(blockNumBefore);
 	const timestampBefore = blockBefore.timestamp;
@@ -34,17 +37,19 @@ async function main() {
 	const maxDuration = 1000;
 	console.log("timestampBefore: ", timestampBefore);
 
-	console.log("\nDeploying TimeLock contract...");
 
 	// Deploying Timelock and send ETH to TimeLock contract
+	console.log("\nDeploying TimeLock contract...");
+
 	const timeLock = await ethers.getContractFactory("LinearVestingNftTimeLock");
 	const timeLockInstance = await timeLock.deploy(
 		basicNFTInstance.address,
 		0,
-		owner.address,
+		nftLocker.address,
+		beneficiary.address,
 		vestingStartTime,
 		maxDuration,
-		{ value: ethers.utils.parseEther("1") }
+		{ value: ethers.utils.parseEther("1000") }
 	);
 
 	await timeLockInstance.deployed();
@@ -52,18 +57,22 @@ async function main() {
 	console.log("basicNFT deployed to:", basicNFTInstance.address);
 	console.log("timeLockInstance deployed to:", timeLockInstance.address);
 
+	// Check nftLocker Eth Balance
+	const ownerBalanceAfter = await ethers.provider.getBalance(nftLocker.address);
+	console.log("nftLocker Balance After: ", ethers.utils.formatEther(ownerBalanceAfter));
+
 	// check NFT Locked
 	const nftLocked = await timeLockInstance.nft();
 	console.log("nftLocked: ", nftLocked);
 
 	// Send NFT to timelock contract
 	await basicNFTInstance.transferFrom(
-		owner.address,
+		nftLocker.address,
 		timeLockInstance.address,
 		0 // token id
 	);
 
-	// check owner of NFT after transfer to be timelock contract
+	// check nftLocker of NFT after transfer to be timelock contract
 	const nftOwnerAfterTransfer = await basicNFTInstance.ownerOf(0);
 	console.log("nftOwnerAfterTransfer: ", nftOwnerAfterTransfer);
 
@@ -123,6 +132,17 @@ async function main() {
 	const releaseTx = await timeLockInstance.release();
 	const newNftOwner = await basicNFTInstance.ownerOf(0);
 	console.log("newNftOwner: ", newNftOwner); // same as original beneficiary
+
+	// Get the ETH balance of NFT Locker and Beneficiary
+	const nftLockerBalanceAfter = await ethers.provider.getBalance(
+		nftLocker.address
+	);
+	const beneficiaryBalanceAfter = await ethers.provider.getBalance(
+		beneficiary.address
+	);
+
+	console.log("nftLockerBalanceAfter: ", ethers.utils.formatEther(nftLockerBalanceAfter));
+	console.log("beneficiaryBalanceAfter: ", ethers.utils.formatEther(beneficiaryBalanceAfter));
 
 	// // check if {release} function can be called again. Expected failure.
 	// const releaseTx2 = await timeLockInstance.release();

@@ -23,7 +23,10 @@ contract LinearVestingNftTimeLock {
     // ERC721 basic token ID of contract being held
     uint256 private immutable _tokenId;
 
-    // beneficiary of token after they are released
+    // address of NFT Locker who would receive the NFT and discount when it is released.
+    address private immutable _nftLocker;
+
+    // address of beneficiary that will receive the remaining discount not claimed by the `_nftLocker`.
     address private immutable _beneficiary;
 
     // timestamp when token release is enabled and when discount starts to vest.
@@ -46,6 +49,7 @@ contract LinearVestingNftTimeLock {
     constructor(
         IERC721 nft_,
         uint256 tokenId_,
+        address nftLocker_,
         address beneficiary_,
         uint256 vestingStartTime_,
         uint256 maxDuration_
@@ -62,6 +66,7 @@ contract LinearVestingNftTimeLock {
 
         _nft = nft_;
         _tokenId = tokenId_;
+        _nftLocker = nftLocker_;
         _beneficiary = beneficiary_;
         _vestingStartTime = vestingStartTime_;
         _maxDuration = maxDuration_;
@@ -81,8 +86,16 @@ contract LinearVestingNftTimeLock {
         return _tokenId;
     }
 
+    
     /**
-     * @dev Returns the beneficiary that will receive the NFT.
+     * @dev Returns the NFT Locker address that will receive the NFT and ETH Discount.
+     */
+    function nftLocker() public view virtual returns (address) {
+        return _nftLocker;
+    }
+
+    /**
+     * @dev Returns the beneficiary that will receive the remaining ETH Discount.
      */
     function beneficiary() public view virtual returns (address) {
         return _beneficiary;
@@ -149,10 +162,16 @@ contract LinearVestingNftTimeLock {
             "TimeLock: no NFT to release for this address"
         );
 
-        // Sending discount to beneficiary
         uint256 ethDiscount = getDiscount();
-        (bool sent, ) = beneficiary().call{value: ethDiscount}("");
-        require(sent, "Failed to send Ether");
+        uint256 ethRemaining = address(this).balance - ethDiscount;
+
+        // Sending remaining discount to beneficiary
+        (bool beneficiarySent, ) = beneficiary().call{value: ethRemaining}("");
+        require(beneficiarySent, "Failed to send Ether");
+
+        // Send discount to NFT Locker
+        (bool nftLockerSent, ) = nftLocker().call{value: ethDiscount}("");
+        require(nftLockerSent, "Failed to send Ether");
 
         // Transfer NFT to beneficiary
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
