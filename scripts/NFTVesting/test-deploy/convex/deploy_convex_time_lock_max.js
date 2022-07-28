@@ -1,6 +1,7 @@
 const { ethers } = require("hardhat");
+const { expect } = require("chai");
 
-// Test script for deploying the contract
+// Test script for deploying the contract. Release after Max Time
 
 async function main() {
 	// Local Blockchain Deployment
@@ -38,7 +39,6 @@ async function main() {
 	const exponent = 2;
 	console.log("timestampBefore: ", timestampBefore);
 
-
 	// Deploying Timelock and send ETH to TimeLock contract
 	console.log("\nDeploying TimeLock contract...");
 
@@ -61,7 +61,10 @@ async function main() {
 
 	// Check nftLocker Eth Balance
 	const ownerBalanceAfter = await ethers.provider.getBalance(nftLocker.address);
-	console.log("nftLocker Balance After: ", ethers.utils.formatEther(ownerBalanceAfter));
+	console.log(
+		"nftLocker Balance After: ",
+		ethers.utils.formatEther(ownerBalanceAfter)
+	);
 
 	// check NFT Locked
 	const nftLocked = await timeLockInstance.nft();
@@ -80,7 +83,7 @@ async function main() {
 
 	// Set new timestamp by speeding up time
 	await ethers.provider.send("evm_setNextBlockTimestamp", [
-		timestampBefore + 188,
+		timestampBefore + 99999999999999,
 	]);
 	await ethers.provider.send("evm_mine"); // Fast forward time
 
@@ -109,7 +112,7 @@ async function main() {
 		"Release Time: ",
 		ethers.utils.formatUnits(await timeLockInstance.vestingStartTime(), 18 - 18)
 	);
-	
+
 	console.log(
 		"Release Time: ",
 		ethers.utils.formatUnits(await timeLockInstance.vestingStartTime(), 18 - 18)
@@ -128,6 +131,7 @@ async function main() {
 		ethers.utils.formatEther(currentDiscount2),
 		"\n"
 	);
+	expect(currentDiscount2).to.deep.equal(ethers.utils.parseEther("100"));
 
 	console.log("Releasing NFT... \n");
 
@@ -143,8 +147,14 @@ async function main() {
 		beneficiary.address
 	);
 
-	console.log("nftLockerBalanceAfter: ", ethers.utils.formatEther(nftLockerBalanceAfter));
-	console.log("beneficiaryBalanceAfter: ", ethers.utils.formatEther(beneficiaryBalanceAfter));
+	console.log(
+		"nftLockerBalanceAfter: ",
+		ethers.utils.formatEther(nftLockerBalanceAfter)
+	);
+	console.log(
+		"beneficiaryBalanceAfter: ",
+		ethers.utils.formatEther(beneficiaryBalanceAfter)
+	);
 
 	// // check if {release} function can be called again. Expected failure.
 	// const releaseTx2 = await timeLockInstance.release();

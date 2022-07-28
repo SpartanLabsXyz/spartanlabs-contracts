@@ -1,4 +1,5 @@
 const { ethers } = require("hardhat");
+const { expect } = require("chai");
 
 // Test script for deploying the contract. Release after Max Time
 
@@ -89,13 +90,9 @@ async function main() {
 	try {
 		await timeLockInstance.release();
 	} catch (e) {
-		console.log("Error: ", e);
-		if (
-			e.reason !=
-			"Error: VM Exception while processing transaction: reverted with reason string 'TimeLock: current time is before vesting start time'"
-		) {
-			throw new Error("Error: unexpected error");
-		}
+		expect(e.reason).to.equal(
+			"Error: VM Exception while processing transaction: reverted with reason string 'BasicNFTTimelock: current time is before release time'"
+		);
 	}
 
 	// Set new timestamp by speeding up time
@@ -116,14 +113,6 @@ async function main() {
 	);
 	console.log("timeLockBalance: ", ethers.utils.formatEther(timeLockBalance));
 
-	// Get current discount
-	const currentDiscount = await timeLockInstance.getDiscount();
-	console.log(
-		"currentDiscount: ",
-		ethers.utils.formatEther(currentDiscount),
-		"\n"
-	);
-
 	// release NFT
 	console.log(
 		"Release Time: ",
@@ -143,11 +132,7 @@ async function main() {
 
 	// Get current discount
 	const currentDiscount2 = await timeLockInstance.getDiscount();
-	console.log(
-		"currentDiscount: ",
-		ethers.utils.formatEther(currentDiscount2),
-		"\n"
-	);
+	expect(currentDiscount2).to.deep.equal(ethers.utils.parseEther("1000"));
 
 	console.log("Releasing NFT... \n");
 

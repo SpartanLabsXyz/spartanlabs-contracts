@@ -85,7 +85,7 @@ async function main() {
 
 	// Set new timestamp by speeding up time
 	await ethers.provider.send("evm_setNextBlockTimestamp", [
-		timestampBefore + 999999999,
+		timestampBefore + 99999999,
 	]);
 	await ethers.provider.send("evm_mine"); // Fast forward time
 
