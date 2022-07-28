@@ -213,9 +213,8 @@ contract IntervalVestingNftTimeLock {
     
         // Transfer NFT to NFT Locker
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
-
+        
         // Check if NFT Locker has received NFT, if not, revert
-        nft().safeTransferFrom(address(this), beneficiary(), tokenId());
         require(
             nft().ownerOf(tokenId()) != address(this),
             "BasicNFTTimelock: NFT still owned by this contract"
