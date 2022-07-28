@@ -1,4 +1,6 @@
 const { ethers } = require("hardhat");
+const { expect } = require("chai");
+
 
 // Test script for deploying the contract
 
@@ -73,13 +75,9 @@ async function main() {
 	try {
 		await timeLockInstance.release();
 	} catch (e) {
-		console.log("Error: ", e);
-		if (
-			e.reason !=
+			expect(e.reason).to.equal(
 			"Error: VM Exception while processing transaction: reverted with reason string 'BasicNFTTimelock: current time is before release time'"
-		) {
-			throw new Error("Error: unexpected error");
-		}
+		)
 	}
 
 	// Set new timestamp by speeding up time

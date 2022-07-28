@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 
-// Test script for deploying the contract
+// Test script for deploying the contract. Release after Max Time
 
 async function main() {
 	// Local Blockchain Deployment
@@ -34,24 +34,20 @@ async function main() {
 	const blockBefore = await ethers.provider.getBlock(blockNumBefore);
 	const timestampBefore = blockBefore.timestamp;
 	const vestingStartTime = timestampBefore + 100;
-	const maxIntervals = 10;
-	const intervalDuration = 100;
+	const maxDuration = 1000;
 	console.log("timestampBefore: ", timestampBefore);
 
 	// Deploying Timelock and send ETH to TimeLock contract
 	console.log("\nDeploying TimeLock contract...");
 
-	const timeLock = await ethers.getContractFactory(
-		"IntervalVestingNftTimeLock"
-	);
+	const timeLock = await ethers.getContractFactory("LinearVestingNftTimeLock");
 	const timeLockInstance = await timeLock.deploy(
 		basicNFTInstance.address,
 		0,
 		nftLocker.address,
 		beneficiary.address,
 		vestingStartTime,
-		maxIntervals,
-		intervalDuration,
+		maxDuration,
 		{ value: ethers.utils.parseEther("1000") }
 	);
 
@@ -82,9 +78,29 @@ async function main() {
 	const nftOwnerAfterTransfer = await basicNFTInstance.ownerOf(0);
 	console.log("nftOwnerAfterTransfer: ", nftOwnerAfterTransfer);
 
+	// Unhappy path to see if it can be released. Should not unlock.
 	// Set new timestamp by speeding up time
 	await ethers.provider.send("evm_setNextBlockTimestamp", [
-		timestampBefore + 1111,
+		timestampBefore + 50,
+	]);
+
+	// try release NFT
+	console.log("Releasing NFT prior to release time...");
+	try {
+		await timeLockInstance.release();
+	} catch (e) {
+		console.log("Error: ", e);
+		if (
+			e.reason !=
+			"Error: VM Exception while processing transaction: reverted with reason string 'TimeLock: current time is before vesting start time'"
+		) {
+			throw new Error("Error: unexpected error");
+		}
+	}
+
+	// Set new timestamp by speeding up time
+	await ethers.provider.send("evm_setNextBlockTimestamp", [
+		timestampBefore + 999999,
 	]);
 	await ethers.provider.send("evm_mine"); // Fast forward time
 
