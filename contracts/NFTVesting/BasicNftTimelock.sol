@@ -86,7 +86,7 @@ contract BasicNftTimelock {
         // Check if current time is after vesting start time
         require(
             block.timestamp >= releaseTime(),
-            "BasicNFTTimelock: current time is before cliff period"
+            "BasicNFTTimelock: current time is before release time"
         );
         
         // Check if the NFT is already released

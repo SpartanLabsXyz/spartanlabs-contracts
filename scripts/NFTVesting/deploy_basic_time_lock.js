@@ -37,9 +37,9 @@ async function main() {
 	const timeLock = await ethers.getContractFactory("BasicNftTimelock");
 	const timeLockInstance = await timeLock.deploy(
 		basicNFTInstance.address,
-		0,
+		0, // ID of nft
 		owner.address,
-		timestampAfter 
+		timestampAfter
 	);
 
 	await timeLockInstance.deployed();
@@ -58,17 +58,29 @@ async function main() {
 		0 // token id
 	);
 
-	// safe transfer from for only ERC721 Receiver implementer
-	// await basicNFTInstance["safeTransferFrom(address,address,uint256)"](
-	// 	owner.address,
-	// 	timeLockInstance.address,
-	// 	0
-	// );
-
-
 	// check owner of NFT after transfer to be timelock contract
 	const nftOwnerAfterTransfer = await basicNFTInstance.ownerOf(0);
-	console.log("nftOwnerAfterTransfer: ", nftOwnerAfterTransfer);
+	console.log("nftOwnerAfterTransfer: ", nftOwnerAfterTransfer); // SHoulod be contract
+
+	// Unhappy path to see if it can be released. Should not unlock.
+	// Set new timestamp by speeding up time
+	await ethers.provider.send("evm_setNextBlockTimestamp", [
+		timestampBefore + 50,
+	]);
+
+	// try release NFT
+	console.log("Releasing NFT prior to release time...");
+	try {
+		await timeLockInstance.release();
+	} catch (e) {
+		console.log("Error: ", e);
+		if (
+			e.reason !=
+			"Error: VM Exception while processing transaction: reverted with reason string 'BasicNFTTimelock: current time is before release time'"
+		) {
+			throw new Error("Error: unexpected error");
+		}
+	}
 
 	// Set new timestamp by speeding up time
 	await ethers.provider.send("evm_setNextBlockTimestamp", [
