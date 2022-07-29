@@ -14,7 +14,7 @@ import "./IERC721.sol";
  * Note that in order for discount in ETH to be valid, ETH must first be sent to this contract upon token locking.
  *
  * Developers would have to perform the following actions for the locking of NFT:
- * Deploy with Eth sent to contract -> Approve NFT Transfer -> Transfer of NFT to contract
+ * Deploy with Eth sent to contract -> Transfer of NFT to contract
  */
 contract ConvexVestingNftTimeLock {
     // ERC721 basic token smart contract
@@ -37,7 +37,6 @@ contract ConvexVestingNftTimeLock {
 
     // Exponent for vesting. exponent in MX^exponent
     uint8 private immutable _exponent;
-
 
     // Events
     event EthReceived(address indexed sender, uint256 amount);
@@ -76,10 +75,7 @@ contract ConvexVestingNftTimeLock {
             "Timelock: growth rate should be greater than 0"
         );
 
-        require(
-            exponent_ > 0,
-            "Timelock: exponent should be greater than 0"
-        );
+        require(exponent_ > 0, "Timelock: exponent should be greater than 0");
 
         _nft = nft_;
         _tokenId = tokenId_;
@@ -91,7 +87,7 @@ contract ConvexVestingNftTimeLock {
     }
 
     /**
-     * @dev Returns the smart contract NFT.
+     * @dev Returns the NFT that this Timelock Contract holds.
      */
     function nft() public view virtual returns (IERC721) {
         return _nft;
@@ -99,6 +95,7 @@ contract ConvexVestingNftTimeLock {
 
     /**
      * @dev Returns the token ID of the NFT being held.
+     * Returns undefined if the contract is not holding an NFT.
      */
     function tokenId() public view virtual returns (uint256) {
         return _tokenId;
@@ -112,15 +109,14 @@ contract ConvexVestingNftTimeLock {
     }
 
     /**
-     * @dev Returns the beneficiary that will receive the remaining ETH Discount.
+     * @dev Returns the beneficiary that will receive the remaining ETH.
      */
     function beneficiary() public view virtual returns (address) {
         return _beneficiary;
     }
 
-
     /**
-     * @dev Returns the time when the NFT are released in seconds since Unix epoch (i.e. Unix timestamp).
+     * @dev Returns the time when the NFT can be released and vesting starts in seconds since Unix epoch (i.e. Unix timestamp).
      */
     function vestingStartTime() public view virtual returns (uint256) {
         return _vestingStartTime;
@@ -134,7 +130,7 @@ contract ConvexVestingNftTimeLock {
     }
 
     /**
-     * @dev Returns Exponent for vesting. exponent in MX^exponent
+     * @dev Returns exponent for vesting. Exponent in MX^exponent
      */
     function exponent() public view virtual returns (uint8) {
         return _exponent;
@@ -147,10 +143,9 @@ contract ConvexVestingNftTimeLock {
         return block.timestamp - vestingStartTime();
     }
 
-
     /**
      * @dev Returns discount accrued in Eth according to duration vested
-     * Based off the formula: discount = mx**exponent, where x is the vested duration.
+     * Based off the formula: discount = growthrate * x^exponent, where x is the vested duration.
      */
     function getDiscount() public view returns (uint256) {
         uint256 discount = growthRate() * vestedDuration()**exponent();
@@ -161,8 +156,9 @@ contract ConvexVestingNftTimeLock {
     }
 
     /**
-     * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
-     * time. Sends the discount in Eth to the beneficiary.
+     * @dev Transfers NFT held by the timelock to the beneficiary.
+     * Will only succeed if invoked after the release time.
+     * Sends the discount in Eth to the beneficiary.
      * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
@@ -178,11 +174,9 @@ contract ConvexVestingNftTimeLock {
             "TimeLock: no NFT to release for this address"
         );
 
-
         // Sending discount to beneficiary
         uint256 ethDiscount = getDiscount();
         uint256 ethRemaining = address(this).balance - ethDiscount;
-
 
         // Sending remaining discount to beneficiary
         (bool beneficiarySent, ) = beneficiary().call{value: ethRemaining}("");

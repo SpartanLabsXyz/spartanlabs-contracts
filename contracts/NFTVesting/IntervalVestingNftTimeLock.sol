@@ -36,7 +36,6 @@ contract IntervalVestingNftTimeLock {
     // Duration for each Interval
     uint256 private immutable _intervalDuration;
 
-
     // Events
     event EthReceived(address indexed sender, uint256 amount);
 
@@ -52,7 +51,7 @@ contract IntervalVestingNftTimeLock {
      *  The amount of ETH sent to this contract is the total discount that beneficiary will receive.
      *
      *  Developers would have to perform the following actions for the locking of NFT:
-     *  Deploy with Eth sent to contract -> Approve NFT Transfer -> Transfer of NFT to contract
+     *  Deploy with Eth sent to contract -> Transfer of NFT to contract
      */
     constructor(
         IERC721 nft_,
@@ -67,7 +66,7 @@ contract IntervalVestingNftTimeLock {
             vestingStartTime_ > block.timestamp,
             "TimeLock: vesting start time is before current time"
         );
-        
+
         require(
             address(this).balance > 0,
             "Time:Lock: Eth should be sent to contract before initialization"
@@ -83,7 +82,7 @@ contract IntervalVestingNftTimeLock {
     }
 
     /**
-     * @dev Returns the smart contract NFT.
+     * @dev Returns the NFT that this Timelock Contract holds.
      */
     function nft() public view virtual returns (IERC721) {
         return _nft;
@@ -91,6 +90,7 @@ contract IntervalVestingNftTimeLock {
 
     /**
      * @dev Returns the token ID of the NFT being held.
+     * Returns undefined if the contract is not holding an NFT.
      */
     function tokenId() public view virtual returns (uint256) {
         return _tokenId;
@@ -104,14 +104,14 @@ contract IntervalVestingNftTimeLock {
     }
 
     /**
-     * @dev Returns the beneficiary that will receive the remaining ETH Discount.
+     * @dev Returns the beneficiary that will receive the remaining ETH.
      */
     function beneficiary() public view virtual returns (address) {
         return _beneficiary;
     }
 
     /**
-     * @dev Returns the time when the NFT are released in seconds since Unix Interval (i.e. Unix timestamp).
+     * @dev Returns the time when the NFT can be released, and vesting starts in seconds since Unix epoch (i.e. Unix timestamp).
      */
     function vestingStartTime() public view virtual returns (uint256) {
         return _vestingStartTime;
@@ -170,14 +170,13 @@ contract IntervalVestingNftTimeLock {
         return maxIntervals() - currentInterval();
     }
 
-
     /**
      * @dev Returns discount accrued by the user up until the current interval.
      *      Discount ratio is the ratio of number of interval passed {currentInterval} to {maxIntervals}.
      *      Maximum discount ratio is 1.
      */
     function getDiscount() public view returns (uint256) {
-        return  currentInterval() * (address(this).balance / maxIntervals());
+        return currentInterval() * (address(this).balance / maxIntervals());
     }
 
     /**
@@ -210,10 +209,10 @@ contract IntervalVestingNftTimeLock {
         // Send discount to NFT Locker
         (bool nftLockerSent, ) = nftLocker().call{value: ethDiscount}("");
         require(nftLockerSent, "Failed to send Ether");
-    
+
         // Transfer NFT to NFT Locker
         nft().safeTransferFrom(address(this), beneficiary(), tokenId());
-        
+
         // Check if NFT Locker has received NFT, if not, revert
         require(
             nft().ownerOf(tokenId()) != address(this),

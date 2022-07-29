@@ -41,7 +41,7 @@ contract BasicNftTimelock {
     ) {
         require(
             releaseTime_ > block.timestamp,
-            "BasicNFTTimelock: releaseTime_ has to be in the future"
+            "BasicNftTimelock: releaseTime_ has to be in the future"
         );
         _nft = nft_;
         _tokenId = tokenId_;
@@ -50,7 +50,7 @@ contract BasicNftTimelock {
     }
 
     /**
-     * @dev Returns the smart contract NFT.
+     * @dev Returns the NFT that this Timelock Contract holds.
      */
     function nft() public view virtual returns (IERC721) {
         return _nft;
@@ -58,6 +58,7 @@ contract BasicNftTimelock {
 
     /**
      * @dev Returns the token ID of the NFT being held.
+     * Returns undefined if the contract is not holding an NFT.
      */
     function tokenId() public view virtual returns (uint256) {
         return _tokenId;
@@ -78,21 +79,21 @@ contract BasicNftTimelock {
     }
 
     /**
-     * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
-     * time.
+     * @dev Transfers NFT held by the timelock to the beneficiary.
+     * Will only succeed if invoked after the release time.
      * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
-        // Check if current time is after vesting start time
+        // Check if current time is after release time
         require(
             block.timestamp >= releaseTime(),
-            "BasicNFTTimelock: current time is before release time"
+            "BasicNftTimelock: current time is before release time"
         );
-        
+
         // Check if the NFT is already released
         require(
             nft().ownerOf(tokenId()) == address(this),
-            "BasicNFTTimelock: no NFT to release"
+            "BasicNftTimelock: no NFT to release"
         );
 
         // Transfer NFT to beneficiary
@@ -101,7 +102,7 @@ contract BasicNftTimelock {
         // Check if beneficiary has received NFT, if not, revert
         require(
             nft().ownerOf(tokenId()) != address(this),
-            "BasicNFTTimelock: NFT still owned by this contract"
+            "BasicNftTimelock: NFT still owned by this contract"
         );
     }
 }

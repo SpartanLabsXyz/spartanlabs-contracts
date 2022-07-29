@@ -14,7 +14,7 @@ import "./IERC721.sol";
  * The amount of ETH sent to this contract is the total discount that beneficiary will receive.
  *
  * Developers would have to perform the following actions for the locking of NFT:
- * Deploy with Eth sent to contract -> Approve NFT Transfer -> Transfer of NFT to contract
+ * Deploy with Eth sent to contract -> Transfer of NFT to contract
  */
 contract LinearVestingNftTimeLock {
     // ERC721 basic token smart contract
@@ -73,7 +73,7 @@ contract LinearVestingNftTimeLock {
     }
 
     /**
-     * @dev Returns the smart contract NFT.
+     * @dev Returns the NFT that this Timelock Contract holds.
      */
     function nft() public view virtual returns (IERC721) {
         return _nft;
@@ -81,12 +81,12 @@ contract LinearVestingNftTimeLock {
 
     /**
      * @dev Returns the token ID of the NFT being held.
+     * Returns undefined if the contract is not holding an NFT.
      */
     function tokenId() public view virtual returns (uint256) {
         return _tokenId;
     }
 
-    
     /**
      * @dev Returns the NFT Locker address that will receive the NFT and ETH Discount.
      */
@@ -95,21 +95,21 @@ contract LinearVestingNftTimeLock {
     }
 
     /**
-     * @dev Returns the beneficiary that will receive the remaining ETH Discount.
+     * @dev Returns the beneficiary that will receive the remaining ETH.
      */
     function beneficiary() public view virtual returns (address) {
         return _beneficiary;
     }
 
     /**
-     * @dev Returns the time when the NFT are released in seconds since Unix epoch (i.e. Unix timestamp).
+     * @dev Returns the time when the NFT can be released, and vesting starts in seconds since Unix epoch (i.e. Unix timestamp).
      */
     function vestingStartTime() public view virtual returns (uint256) {
         return _vestingStartTime;
     }
 
     /**
-     * @dev Returns the max duration that a token is allowed to vest
+     * @dev Returns the max duration that a token is allowed to vest for.
      */
     function maxDuration() public view virtual returns (uint256) {
         return _maxDuration;
@@ -134,8 +134,9 @@ contract LinearVestingNftTimeLock {
             return 0;
         }
 
-        uint256 discount = vestedDuration() * (address(this).balance / maxDuration()); // The reason why the balance is divided by maxDuration is because vestedDuration()/maxDuration() = 0.
-        
+        uint256 discount = vestedDuration() *
+            (address(this).balance / maxDuration()); // The reason why the balance is divided by maxDuration is because vestedDuration()/maxDuration() = 0.
+
         // Prevent discount from being greater than balance
         if (discount > address(this).balance) {
             discount = address(this).balance;
@@ -145,12 +146,13 @@ contract LinearVestingNftTimeLock {
     }
 
     /**
-     * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
-     * time. Sends the discount in Eth to the beneficiary.
+     * @dev Transfers NFT held by the timelock to the beneficiary.
+     * Will only succeed if invoked after the release time.
+     * Sends the discount in Eth to the beneficiary.
      * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
-        // Check if current time is after vesting start time
+        // Check if current time is after {vestingStartTime} for release
         require(
             block.timestamp >= vestingStartTime(),
             "TimeLock: current time is before vesting start time"
@@ -184,7 +186,8 @@ contract LinearVestingNftTimeLock {
     }
 
     /**
-     * @dev Fallback function for eth to be sent to contract on Initialization. Emits EthReceived Event
+     * @dev Fallback function for eth to be sent to contract on Initialization.
+     * Emits EthReceived Event
      */
     receive() external payable {
         emit EthReceived(msg.sender, msg.value);
