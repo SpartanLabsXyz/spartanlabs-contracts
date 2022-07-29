@@ -139,11 +139,10 @@ contract LinearVestingNftTimeLock {
 
         // Prevent discount from being greater than balance
         if (discount > address(this).balance) {
-            discount = address(this).balance;
-        } else{
+            return address(this).balance;
+        } else {
             return discount;
         }
-
     }
 
     /**

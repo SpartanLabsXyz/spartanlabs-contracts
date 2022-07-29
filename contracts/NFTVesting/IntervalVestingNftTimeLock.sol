@@ -159,8 +159,8 @@ contract IntervalVestingNftTimeLock {
         uint256 intervals = 1 + intervalsPassed();
 
         if (intervals > maxIntervals()) {
-            intervals = maxIntervals();
-        } else{
+            return maxIntervals();
+        } else {
             return intervals;
         }
     }
@@ -178,7 +178,7 @@ contract IntervalVestingNftTimeLock {
      *      Maximum discount ratio is 1.
      */
     function getDiscount() public view returns (uint256) {
-        return currentInterval() * (address(this).balance / maxIntervals());
+        return currentInterval() * (address(this).balance / maxIntervals()); // The reason why the balance is divided by maxDuration is because vestedDuration()/maxDuration() = 0.
     }
 
     /**
