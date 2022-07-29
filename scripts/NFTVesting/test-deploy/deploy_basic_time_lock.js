@@ -1,7 +1,6 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
 
-
 // Test script for deploying the contract
 
 async function main() {
@@ -62,7 +61,7 @@ async function main() {
 
 	// check owner of NFT after transfer to be timelock contract
 	const nftOwnerAfterTransfer = await basicNFTInstance.ownerOf(0);
-	console.log("nftOwnerAfterTransfer: ", nftOwnerAfterTransfer); // SHoulod be contract
+	console.log("nftOwnerAfterTransfer: ", nftOwnerAfterTransfer); // Should be contract
 
 	// Unhappy path to see if it can be released. Should not unlock.
 	// Set new timestamp by speeding up time
@@ -75,16 +74,16 @@ async function main() {
 	try {
 		await timeLockInstance.release();
 	} catch (e) {
-			expect(e.reason).to.equal(
+		expect(e.reason).to.equal(
 			"Error: VM Exception while processing transaction: reverted with reason string 'BasicNFTTimelock: current time is before release time'"
-		)
+		);
 	}
 
 	// Set new timestamp by speeding up time
 	await ethers.provider.send("evm_setNextBlockTimestamp", [
 		timestampBefore + 300,
 	]);
-	// await ethers.provider.send("evm_mine"); // this one will have 02:00 PM as its timestamp
+	await ethers.provider.send("evm_mine"); // this one will have 02:00 PM as its timestamp
 
 	// Get new timestamp
 	const blockNumAfter = await ethers.provider.getBlockNumber();
@@ -97,10 +96,6 @@ async function main() {
 	const releaseTx = await timeLockInstance.release();
 	const newNftOwner = await basicNFTInstance.ownerOf(0);
 	console.log("newNftOwner: ", newNftOwner); // same as original beneficiary
-
-	// // check if {release} function can be called again. Expected failure.
-	// const releaseTx2 = await timeLockInstance.release();
-	// console.log("releaseTx2: ", releaseTx2);
 }
 
 main()

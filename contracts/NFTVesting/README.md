@@ -19,3 +19,5 @@ For testing of the contracts, you can refer to `scripts/NFTVesting/test-deploy`.
 - Linear Vesting Time Lock ` npx hardhat run --network localhost scripts/NFTVesting/deploy_linear_time_lock.js`
 - Interval Vesting Time Lock ` npx hardhat run --network localhost scripts/NFTVesting/deploy_interval_time_lock.js`
 - Convex Vesting Time Lock ` npx hardhat run --network localhost scripts/NFTVesting/deploy_convex_time_lock.js`
+
+The Makefile also contains commands for contract deployment

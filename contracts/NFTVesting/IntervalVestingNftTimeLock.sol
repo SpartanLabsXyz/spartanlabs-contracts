@@ -140,6 +140,7 @@ contract IntervalVestingNftTimeLock {
 
     /**
      * @dev Returns the number of interval that the token has been vested for after the vesting start time.
+     * Note that vestedDuration()/intervalDuration() will return the floor of the number of intervals.
      */
     function intervalsPassed() public view returns (uint256) {
         return vestedDuration() / intervalDuration();
@@ -159,8 +160,9 @@ contract IntervalVestingNftTimeLock {
 
         if (intervals > maxIntervals()) {
             intervals = maxIntervals();
+        } else{
+            return intervals;
         }
-        return intervals;
     }
 
     /**
