@@ -3,22 +3,24 @@
 // SpartanLabs Contracts (NFTVesting)
 
 pragma solidity ^0.8.0;
+import "./IERC721.sol";
 
 /**
  * @dev A single NFT holder contract that will allow a beneficiary to extract the
- * NFT after a given release time.
+ * NFT after a given lock period.
+ *
+ * Developers would have to perform the following actions for the locking of NFT:
+ * Deploy the contract -> Transfer Nft to the contract
  *
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".
  */
-contract BasicNFTTimelock {
-    // TODO: Add SafeERC721 interaction?
-
+contract BasicNftTimelock {
     // ERC721 basic token smart contract
     IERC721 private immutable _nft;
 
     // ERC721 basic token ID of contract being held
-    uint256 tokenId immutable _tokenId;
+    uint256 private immutable _tokenId;
 
     // beneficiary of token after they are released
     address private immutable _beneficiary;
@@ -28,16 +30,19 @@ contract BasicNFTTimelock {
 
     /**
      * @dev Deploys a timelock instance that is able to hold the token specified, and will only release it to
-     * `beneficiary_` when {release} is invoked after `releaseTime_`. The release time is specified as a Unix timestamp
+     * `beneficiary_` when {release} is invoked after `releaseTime_`. The cliff period is specified as a Unix timestamp
      * (in seconds).
      */
     constructor(
-        IERC20 nft_,
+        IERC721 nft_,
         uint256 tokenId_,
         address beneficiary_,
         uint256 releaseTime_
     ) {
-        require(releaseTime_ > block.timestamp, "BasicNFTTimelock: release time is before current time");
+        require(
+            releaseTime_ > block.timestamp,
+            "BasicNftTimelock: releaseTime_ has to be in the future"
+        );
         _nft = nft_;
         _tokenId = tokenId_;
         _beneficiary = beneficiary_;
@@ -45,7 +50,7 @@ contract BasicNFTTimelock {
     }
 
     /**
-     * @dev Returns the smart contract NFT.
+     * @dev Returns the NFT that this Timelock Contract holds.
      */
     function nft() public view virtual returns (IERC721) {
         return _nft;
@@ -53,6 +58,7 @@ contract BasicNFTTimelock {
 
     /**
      * @dev Returns the token ID of the NFT being held.
+     * Returns undefined if the contract is not holding an NFT.
      */
     function tokenId() public view virtual returns (uint256) {
         return _tokenId;
@@ -73,13 +79,30 @@ contract BasicNFTTimelock {
     }
 
     /**
-     * @dev Transfers NFT held by the timelock to the beneficiary. Will only succeed if invoked after the release
-     * time.
+     * @dev Transfers NFT held by the timelock to the beneficiary.
+     * Will only succeed if invoked after the release time.
+     * Reverts if transfer of NFT fails.
      */
     function release() public virtual {
-        require(block.timestamp >= releaseTime(), "BasicNFTTimelock: current time is before release time");
-        require(nft().ownerOf(tokenId()) == address(this), "BasicNFTTimelock: no NFT to release");
+        // Check if current time is after release time
+        require(
+            block.timestamp >= releaseTime(),
+            "BasicNftTimelock: current time is before release time"
+        );
 
-        nft().safeTransfer(address(this), beneficiary(), tokenId());
+        // Check if the NFT is already released
+        require(
+            nft().ownerOf(tokenId()) == address(this),
+            "BasicNftTimelock: no NFT to release"
+        );
+
+        // Transfer NFT to beneficiary
+        nft().safeTransferFrom(address(this), beneficiary(), tokenId());
+
+        // Check if beneficiary has received NFT, if not, revert
+        require(
+            nft().ownerOf(tokenId()) != address(this),
+            "BasicNftTimelock: NFT still owned by this contract"
+        );
     }
 }
