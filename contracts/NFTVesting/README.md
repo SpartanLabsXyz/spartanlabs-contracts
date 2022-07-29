@@ -1,6 +1,6 @@
 # NFT Smart Contract Vesting
 
-- These set of contracts is based on the [article]() 
+- These set of contracts is based on the [article]() # TBD
 
 
 
@@ -11,7 +11,7 @@
 
 
 ### Commands to Deploy
-For testing of the contracts, you can refer to `scripts/NFTVesting/deploy.js`.
+For testing of the contracts, you can refer to `scripts/NFTVesting/test-deploy`.
 
 1. Start local chain with `npx hardhat node`
 2. Run the deploy script with
