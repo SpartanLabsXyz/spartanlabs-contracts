@@ -61,7 +61,7 @@ async function main() {
 
 	// check owner of NFT after transfer to be timelock contract
 	const nftOwnerAfterTransfer = await basicNFTInstance.ownerOf(0);
-	console.log("nftOwnerAfterTransfer: ", nftOwnerAfterTransfer); // Should be contract
+	expect(nftOwnerAfterTransfer).to.equal(timeLockInstance.address); // Owner should be time lock contract
 
 	// Unhappy path to see if it can be released. Should not unlock.
 	// Set new timestamp by speeding up time
@@ -75,15 +75,15 @@ async function main() {
 		await timeLockInstance.release();
 	} catch (e) {
 		expect(e.reason).to.equal(
-			"Error: VM Exception while processing transaction: reverted with reason string 'BasicNFTTimelock: current time is before release time'"
+			"Error: VM Exception while processing transaction: reverted with reason string 'BasicNftTimelock: current time is before release time'"
 		);
 	}
 
 	// Set new timestamp by speeding up time
 	await ethers.provider.send("evm_setNextBlockTimestamp", [
-		timestampBefore + 300,
+		timestampBefore + 3000,
 	]);
-	await ethers.provider.send("evm_mine"); // this one will have 02:00 PM as its timestamp
+	await ethers.provider.send("evm_mine");
 
 	// Get new timestamp
 	const blockNumAfter = await ethers.provider.getBlockNumber();

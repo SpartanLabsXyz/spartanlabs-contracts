@@ -154,9 +154,6 @@ async function main() {
 		ethers.utils.formatEther(beneficiaryBalanceAfter)
 	);
 
-	// // check if {release} function can be called again. Expected failure.
-	// const releaseTx2 = await timeLockInstance.release();
-	// console.log("releaseTx2: ", releaseTx2);
 }
 
 main()

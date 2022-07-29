@@ -10,7 +10,7 @@ import "./IERC721.sol";
  * NFT after a given lock period.
  *
  * Developers would have to perform the following actions for the locking of NFT:
- * Deploy -> Approve -> Transfer
+ * Deploy the contract -> Transfer Nft to the contract
  *
  * Useful for simple vesting schedules like "whitelisted addresses get their NFT
  * after 1 year".

@@ -39,7 +39,6 @@ async function main() {
 	const exponent = 1;
 	console.log("timestampBefore: ", timestampBefore);
 
-
 	// Deploying Timelock and send ETH to TimeLock contract
 	console.log("\nDeploying TimeLock contract...");
 
@@ -62,7 +61,10 @@ async function main() {
 
 	// Check nftLocker Eth Balance
 	const ownerBalanceAfter = await ethers.provider.getBalance(nftLocker.address);
-	console.log("nftLocker Balance After: ", ethers.utils.formatEther(ownerBalanceAfter));
+	console.log(
+		"nftLocker Balance After: ",
+		ethers.utils.formatEther(ownerBalanceAfter)
+	);
 
 	// check NFT Locked
 	const nftLocked = await timeLockInstance.nft();
@@ -110,7 +112,7 @@ async function main() {
 		"Release Time: ",
 		ethers.utils.formatUnits(await timeLockInstance.vestingStartTime(), 18 - 18)
 	);
-	
+
 	console.log(
 		"Release Time: ",
 		ethers.utils.formatUnits(await timeLockInstance.vestingStartTime(), 18 - 18)
@@ -144,12 +146,14 @@ async function main() {
 		beneficiary.address
 	);
 
-	console.log("nftLockerBalanceAfter: ", ethers.utils.formatEther(nftLockerBalanceAfter));
-	console.log("beneficiaryBalanceAfter: ", ethers.utils.formatEther(beneficiaryBalanceAfter));
-
-	// // check if {release} function can be called again. Expected failure.
-	// const releaseTx2 = await timeLockInstance.release();
-	// console.log("releaseTx2: ", releaseTx2);
+	console.log(
+		"nftLockerBalanceAfter: ",
+		ethers.utils.formatEther(nftLockerBalanceAfter)
+	);
+	console.log(
+		"beneficiaryBalanceAfter: ",
+		ethers.utils.formatEther(beneficiaryBalanceAfter)
+	);
 }
 
 main()
