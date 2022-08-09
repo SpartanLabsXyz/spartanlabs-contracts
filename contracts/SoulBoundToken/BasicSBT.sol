@@ -8,21 +8,12 @@ import "./utils/Ownable.sol";
  * @dev Implementation of Soul Bound Token (SBT)
  * following Vitalik's co-authored whitepaper at: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4105763
  *
- * Contract provides a basic Soul Bound Token mechanism, where
- * there is an address can mint and burn tokens.
+ * Contract provides a basic Soul Bound Token mechanism, where address can mint SBT with their private data.
  *
  * By default, the owner account will be the one that deploys the contract. This
  * can later be changed with {transferOwnership}.
  */
 contract BasicSBT is Ownable {
-    /**
-     * @dev Struct `Soul` contains the soulbound token information for a given address.
-     * The fields within the struct can be be edited for the usecase of the SBT.
-     */
-    struct Soul {
-        string identity;
-        string url;
-    }
 
     // Name for the SBT
     string public _name;
@@ -38,6 +29,18 @@ contract BasicSBT is Ownable {
 
     // Mapping between address and the soul
     mapping(address => Soul) private souls;
+
+    /**
+     * @dev Struct `Soul` contains the soulbound token information for a given address.
+     * The fields within the struct can be be edited for the usecase of the SBT.
+     *
+     * The fields of `identity` and `url` can be hashed for privacy.
+     */
+    struct Soul {
+        string identity;
+        string url;
+    }
+
 
     // Events
     event Mint(address _soul);
@@ -75,20 +78,18 @@ contract BasicSBT is Ownable {
         souls[_soul] = _soulData;
         _totalSBT++;
         _owners[_totalSBT] = _soul;
+        emit Mint(_soul);
     }
 
     /**
-     * @dev Destroys `tokenId`.
-     * The approval is cleared when the token is burned.
-     * This is an internal function that does not check if the sender is authorized to operate on the token.
+     * @dev Destroys SBT for a given address.
      *
      * Requirements:
-     *
-     * - `tokenId` must exist.
-     *
-     * Emits a {Transfer} event.
+     * Only the owner of the SBT can destroy it.
+     * Emits a {Burn} event.
      */
-    function burn(address _soul) external {
+    function burn(address _soul) external virtual validAddress(_soul) {
+        require(hasSoul(_soul), "Soul does not exists");
         require(
             msg.sender == _soul,
             "Only users have rights to delete their data"
@@ -99,7 +100,10 @@ contract BasicSBT is Ownable {
     }
 
     /**
-     * @dev Updates the mapping of address to attribute. Only the owner address is able to update the information
+     * @dev Updates the mapping of address to attribute. 
+     * Only the owner address is able to update the information
+     *
+     * However, projects can have it such that users can propose changes for the contract owner to update.
      */
     function updateSBT(address _soul, Soul memory _soulData)
         public
@@ -110,7 +114,7 @@ contract BasicSBT is Ownable {
         souls[_soul] = _soulData;
         emit Update(_soul);
         return true;
-    } //TODO : should we have a list of operators to update soul, or owner works for now?
+    }
 
     /**
      * @dev Returns the soul data of `identity, url` for the given address
@@ -137,8 +141,10 @@ contract BasicSBT is Ownable {
     {
         require(hasSoul(_soul), "Soul does not exist");
         (string memory _identity, string memory _url) = getSBTData(_soul);
-        
-        return compareString(_soulData.identity, _identity) && compareString(_soulData.url, _url);
+
+        return
+            compareString(_soulData.identity, _identity) &&
+            compareString(_soulData.url, _url);
     }
 
     /**
@@ -148,19 +154,35 @@ contract BasicSBT is Ownable {
         return _totalSBT;
     }
 
-    function compareString(string memory a, string memory b) internal pure virtual returns (bool) {
+    /**
+     * @dev Returns if two strings are equal
+     */
+    function compareString(string memory a, string memory b)
+        internal
+        pure
+        virtual
+        returns (bool)
+    {
         return compareMemory(bytes(a), bytes(b));
     }
 
-    function compareMemory(bytes memory a, bytes memory b) internal pure virtual returns(bool){
+    /**
+     * @dev Returns if two memory arrays are equal
+     */
+    function compareMemory(bytes memory a, bytes memory b)
+        internal
+        pure
+        virtual
+        returns (bool)
+    {
         return (a.length == b.length) && (keccak256(a) == keccak256(b));
     }
 
     /**
      * @dev Returns whether SBT exists for a given address.
      *
-     * SBT start existing when they are minted (`_mint`),
-     * and stop existing when they are burned (`_burn`).
+     * SBT start existing when they are minted (`mint`),
+     * and stop existing when they are burned (`burn`).
      */
     function hasSoul(address _soul)
         public
@@ -180,14 +202,14 @@ contract BasicSBT is Ownable {
     }
 
     /**
-     * @dev Returns the name of SBT
+     * @dev Returns the name of SBT.
      */
     function name() public view returns (string memory) {
         return _name;
     }
 
     /**
-     * @dev Returns the symbol ticker of SBT
+     * @dev Returns the symbol ticker of SBT.
      */
     function symbol() public view returns (string memory) {
         return _symbol;
