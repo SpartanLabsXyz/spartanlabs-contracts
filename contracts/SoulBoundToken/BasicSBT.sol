@@ -14,7 +14,6 @@ import "./utils/Ownable.sol";
  * can later be changed with {transferOwnership}.
  */
 contract BasicSBT is Ownable {
-
     // Name for the SBT
     string public _name;
 
@@ -40,7 +39,6 @@ contract BasicSBT is Ownable {
         string identity;
         string url;
     }
-
 
     // Events
     event Mint(address _soul);
@@ -100,8 +98,8 @@ contract BasicSBT is Ownable {
     }
 
     /**
-     * @dev Updates the mapping of address to attribute. 
-     * Only the owner address is able to update the information
+     * @dev Updates the mapping of address to attribute.
+     * Only the owner address is able to update the information.
      *
      * However, projects can have it such that users can propose changes for the contract owner to update.
      */
@@ -131,7 +129,7 @@ contract BasicSBT is Ownable {
 
     /**
      * @dev Validates if the _soul is associated with the valid data in the corresponding address.
-     * By checking if the `_soulData` given in parameter is the same as the data in the mapping.
+     * By checking if the `_soulData` given in parameter is the same as the data in the struct of mapping.
      */
     function validateAttribute(address _soul, Soul memory _soulData)
         public

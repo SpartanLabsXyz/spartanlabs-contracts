@@ -21,7 +21,7 @@ describe('BasicSBT', function () {
   });
 
   it('Should mint a new soul', async function () {
-    const soul = ['SpartanLabs', 'https://spartanlabs.studio/#:~:text=Spartan%20Labs%20is%20part%20of,exciting%20Web3%20projects%20to%20market'];
+    const soul = ['SpartanLabs', 'https://spartanlabs.studio/'];
     await sbt.mint(user1.address,soul);
   });
 
@@ -33,7 +33,17 @@ describe('BasicSBT', function () {
     const soul = await sbt.getSBTData(user1.address);
     //console.log(soul);
     expect(soul[0]).to.equal('SpartanLabs');
-    expect(soul[1]).to.equal('https://spartanlabs.studio/#:~:text=Spartan%20Labs%20is%20part%20of,exciting%20Web3%20projects%20to%20market');
+    expect(soul[1]).to.equal('https://spartanlabs.studio/');
+  });
+
+  it('validateAttribute should return true', async function () {
+    const expectedSoul = ['SpartanLabs', 'https://spartanlabs.studio/'];
+    expect(await sbt.validateAttribute(user1.address,expectedSoul)).to.equal(true);
+  });
+
+  it('validateAttribute should return false', async function () {
+    const expectedSoul = ['SpartanLabss1', 'https://spartanlabs.studio/'];
+    expect(await sbt.validateAttribute(user1.address,expectedSoul)).to.equal(false);
   });
 
   it('User should be able to update soul', async function () {
@@ -46,6 +56,11 @@ describe('BasicSBT', function () {
     //console.log(soul);
     expect(soul[0]).to.equal('Spartan');
     expect(soul[1]).to.equal('https://www.spartangroup.io/team.html');
+  });
+
+  it('validateAttribute should return true after update', async function () {
+    const expectedSoul = ['Spartan', 'https://www.spartangroup.io/team.html'];
+    expect(await sbt.validateAttribute(user1.address,expectedSoul)).to.equal(true);
   });
 
   it('User should be able to delete their data', async function () {
