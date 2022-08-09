@@ -57,8 +57,10 @@ describe('BasicSBT', function () {
   });
 
   it('Should mint another soul for user2', async function () {
-    const soul = ['Alice Smith', 'https://github.com', 42, new Date().getTime()];
+    const soul = ['Alice Smith', 'https://github.com'];
     await sbt.mint(user2.address,soul);
+    // check that user2 has a soul
+    expect(await sbt.hasSoul(user2.address)).to.equal(true);
   });
 
 });
