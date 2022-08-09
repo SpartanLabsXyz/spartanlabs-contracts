@@ -71,7 +71,7 @@ contract BasicSBT is Ownable {
         virtual
         validAddress(_soul)
     {
-        require(!_exists(_soul), "Soul already exists");
+        require(!hasSoul(_soul), "Soul already exists");
         souls[_soul] = _soulData;
         _totalSBT++;
         _owners[_totalSBT] = _soul;
@@ -98,17 +98,19 @@ contract BasicSBT is Ownable {
         emit Burn(_soul);
     }
 
-    // Updates the mapping of address to attribute. Only the owner address is able to update the information
-    function updateAttribute(address _soul, Soul memory _soulData)
+    /**
+     * @dev Updates the mapping of address to attribute. Only the owner address is able to update the information
+     */
+    function updateSBT(address _soul, Soul memory _soulData)
         public
         onlyOwner
         returns (bool)
     {
-        require(_exists(_soul), "Soul does not exist");
+        require(hasSoul(_soul), "Soul does not exist");
         souls[_soul] = _soulData;
         emit Update(_soul);
         return true;
-    }
+    } //TODO : should we have a list of operators to update soul, or owner works for now?
 
     /**
      * @dev Returns the soul data of `identity, url` for the given address
@@ -133,7 +135,7 @@ contract BasicSBT is Ownable {
         virtual
         returns (bool)
     {
-        require(_exists(_soul), "Soul does not exist");
+        require(hasSoul(_soul), "Soul does not exist");
         (string memory _identity, string memory _url) = getSBTData(_soul);
         
         return compareString(_soulData.identity, _identity) && compareString(_soulData.url, _url);
@@ -160,8 +162,8 @@ contract BasicSBT is Ownable {
      * SBT start existing when they are minted (`_mint`),
      * and stop existing when they are burned (`_burn`).
      */
-    function _exists(address _soul)
-        internal
+    function hasSoul(address _soul)
+        public
         view
         virtual
         validAddress(_soul)
@@ -175,5 +177,19 @@ contract BasicSBT is Ownable {
         // return bytes(souls[_soul]).length > 0;
         (string memory _identity, string memory _url) = getSBTData(_soul);
         return bytes(_identity).length > 0 && bytes(_url).length > 0;
+    }
+
+    /**
+     * @dev Returns the name of SBT
+     */
+    function name() public view returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev Returns the symbol ticker of SBT
+     */
+    function symbol() public view returns (string memory) {
+        return _symbol;
     }
 }
