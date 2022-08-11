@@ -1,7 +1,6 @@
 name: CI Hardhat Tests
 on:
   push:
-    branches: ["master"]
   pull_request:
     branches: ["master"]
 
