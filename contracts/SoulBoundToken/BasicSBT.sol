@@ -33,11 +33,11 @@ contract BasicSBT is Ownable {
      * @dev Struct `Soul` contains the soulbound token information for a given address.
      * The fields within the struct can be be edited for the usecase of the SBT.
      *
-     * The fields of `identity` and `url` can be hashed for privacy.
+     * The fields of `identity` and `uri` can be hashed for privacy.
      */
     struct Soul {
         string identity;
-        string url;
+        string uri;
     }
 
     // Events
@@ -115,7 +115,7 @@ contract BasicSBT is Ownable {
     }
 
     /**
-     * @dev Returns the soul data of `identity, url` for the given address
+     * @dev Returns the soul data of `identity, uri` for the given address
      */
     function getSBTData(address _soul)
         public
@@ -124,7 +124,7 @@ contract BasicSBT is Ownable {
         validAddress(_soul)
         returns (string memory, string memory)
     {
-        return (souls[_soul].identity, souls[_soul].url);
+        return (souls[_soul].identity, souls[_soul].uri);
     }
 
     /**
@@ -138,11 +138,11 @@ contract BasicSBT is Ownable {
         returns (bool)
     {
         require(hasSoul(_soul), "Soul does not exist");
-        (string memory _identity, string memory _url) = getSBTData(_soul);
+        (string memory _identity, string memory _uri) = getSBTData(_soul);
 
         return
             compareString(_soulData.identity, _identity) &&
-            compareString(_soulData.url, _url);
+            compareString(_soulData.uri, _uri);
     }
 
     /**
@@ -153,7 +153,7 @@ contract BasicSBT is Ownable {
     }
 
     /**
-     * @dev Returns if two strings are equal
+     * @dev Returns if two strings are equalx 
      */
     function compareString(string memory a, string memory b)
         internal
@@ -195,8 +195,8 @@ contract BasicSBT is Ownable {
         // return bytes(souls[_soul]).length>0;
 
         // return bytes(souls[_soul]).length > 0;
-        (string memory _identity, string memory _url) = getSBTData(_soul);
-        return bytes(_identity).length > 0 && bytes(_url).length > 0;
+        (string memory _identity, string memory _uri) = getSBTData(_soul);
+        return bytes(_identity).length > 0 && bytes(_uri).length > 0;
     }
 
     /**
