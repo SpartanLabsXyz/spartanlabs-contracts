@@ -189,7 +189,6 @@ contract BasicSBT is Ownable {
         validAddress(_soul)
         returns (bool)
     {
-        // TODO: check with JH if we should go w this check or using IERC721 check
         // require(souls[_soul].identity == "", "Soul already exists"); // Since Solidity initializes all souls to empty string, addresses with souls mapped will not be an empty string
         // require(keccak256(bytes(souls[_soul].identity)) == zeroHash, "Soul already exists");
         // return bytes(souls[_soul]).length>0;
