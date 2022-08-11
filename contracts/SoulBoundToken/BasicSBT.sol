@@ -130,6 +130,8 @@ contract BasicSBT is Ownable {
     /**
      * @dev Validates if the _soul is associated with the valid data in the corresponding address.
      * By checking if the `_soulData` given in parameter is the same as the data in the struct of mapping.
+     * 
+     * Projects can consider implementing their own offchain verification mechanism as well.
      */
     function validateAttribute(address _soul, Soul memory _soulData)
         public
