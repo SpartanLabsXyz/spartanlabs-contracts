@@ -21,10 +21,7 @@ contract BasicSBT is Ownable {
     string public _symbol;
 
     // Total count of SBT
-    uint256 public _totalSBT; // TODO: Should we keep track of how many SBT?
-
-    // Mapping from SBT ID to owner address
-    mapping(uint256 => address) private _owners; // TODO : Do we even need to keep track of owners?
+    uint256 public _totalSBT; 
 
     // Mapping between address and the soul
     mapping(address => Soul) private souls;
@@ -75,7 +72,6 @@ contract BasicSBT is Ownable {
         require(!hasSoul(_soul), "Soul already exists");
         souls[_soul] = _soulData;
         _totalSBT++;
-        _owners[_totalSBT] = _soul;
         emit Mint(_soul);
     }
 
@@ -93,7 +89,6 @@ contract BasicSBT is Ownable {
             "Only users have rights to delete their data"
         );
         delete souls[_soul];
-        delete _owners[_totalSBT];
         emit Burn(_soul);
     }
 
@@ -191,11 +186,6 @@ contract BasicSBT is Ownable {
         validAddress(_soul)
         returns (bool)
     {
-        // require(souls[_soul].identity == "", "Soul already exists"); // Since Solidity initializes all souls to empty string, addresses with souls mapped will not be an empty string
-        // require(keccak256(bytes(souls[_soul].identity)) == zeroHash, "Soul already exists");
-        // return bytes(souls[_soul]).length>0;
-
-        // return bytes(souls[_soul]).length > 0;
         (string memory _identity, string memory _uri) = getSBTData(_soul);
         return bytes(_identity).length > 0 && bytes(_uri).length > 0;
     }
