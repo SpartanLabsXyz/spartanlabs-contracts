@@ -6,7 +6,7 @@ import "./utils/Ownable.sol";
 
 /**
  * @dev Implementation of Soul Bound Token (SBT)
- * following Vitalik's co-authored whitepaper at: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4105763
+ * Following Vitalik's co-authored whitepaper at: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4105763
  *
  * Contract provides a basic Soul Bound Token mechanism, where address can mint SBT with their private data.
  *
@@ -51,7 +51,8 @@ contract BasicSBT is Ownable {
     }
 
     /**
-     * @dev Initializes the contract by setting a `name` and a `symbol` to the SBT
+     * @dev Initializes the contract by setting a `name` and a `symbol` to the SBT. 
+     * The `totalSBT` is set to zero.
      */
     constructor(string memory name_, string memory symbol_) {
         _name = name_;
@@ -81,13 +82,11 @@ contract BasicSBT is Ownable {
      * Requirements:
      * Only the owner of the SBT can destroy it.
      * Emits a {Burn} event.
+     *
+     * However, projects can have it such that users can propose changes for the contract owner to update.
      */
-    function burn(address _soul) external virtual validAddress(_soul) {
+    function burn(address _soul) external virtual onlyOwner validAddress(_soul) {
         require(hasSoul(_soul), "Soul does not exists");
-        require(
-            msg.sender == _soul,
-            "Only users have rights to delete their data"
-        );
         delete souls[_soul];
         emit Burn(_soul);
     }
@@ -101,6 +100,7 @@ contract BasicSBT is Ownable {
     function updateSBT(address _soul, Soul memory _soulData)
         public
         onlyOwner
+        validAddress(_soul)
         returns (bool)
     {
         require(hasSoul(_soul), "Soul does not exist");
