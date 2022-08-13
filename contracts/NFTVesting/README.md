@@ -1,6 +1,6 @@
 # NFT Smart Contract Vesting
 
-- These set of contracts is based on the [article]() # TBD
+- These set of contracts is based on the [article](https://medium.com/@spartanlabs/nft-vesting-with-time-locks-b7932b186a6e)
 
 
 
