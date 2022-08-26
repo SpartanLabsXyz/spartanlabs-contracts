@@ -1,0 +1,23 @@
+name: CI Hardhat Tests
+on:
+  push:
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16]
+    steps:
+      - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/checkout@v3
+      - name: Install
+        run: yarn install
+      - name: compile
+        run: npm run compile
+      - name: Run tests and generate gas report
+        run: npm run test
