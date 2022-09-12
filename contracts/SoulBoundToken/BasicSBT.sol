@@ -68,6 +68,7 @@ contract BasicSBT is Ownable {
     function mint(address _soul, Soul memory _soulData)
         external
         virtual
+        onlyOwner
         validAddress(_soul)
     {
         require(!hasSoul(_soul), "Soul already exists");
