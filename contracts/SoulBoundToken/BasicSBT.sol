@@ -89,6 +89,7 @@ contract BasicSBT is Ownable {
     function burn(address _soul) external virtual onlyOwner validAddress(_soul) {
         require(hasSoul(_soul), "Soul does not exists");
         delete souls[_soul];
+        _totalSBT--;
         emit Burn(_soul);
     }
 
